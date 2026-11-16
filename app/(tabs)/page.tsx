@@ -48,63 +48,72 @@ export default function CalendarPage() {
 
   return (
     <Screen>
-      <header className="flex h-12 items-center justify-between">
-        <div className="flex items-center gap-1">
-          <button aria-label="이전 달" onClick={() => go(prevMonth(month))} className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-ink-2 active:bg-line">‹</button>
-          <h1 className="min-w-[110px] text-center text-xl font-bold">{month.slice(0, 4)}년 {mm}월</h1>
-          <button aria-label="다음 달" onClick={() => go(nextMonth(month))} className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-ink-2 active:bg-line">›</button>
-        </div>
-        {month !== thisMonth() && (
-          <button onClick={() => go(thisMonth())} className="rounded-xl bg-surface px-3 py-2 text-sm font-semibold text-ink-2">오늘</button>
-        )}
-      </header>
-
       {error && <Panel><p className="text-bad">{error}</p></Panel>}
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.4fr_1fr] md:items-start [&>*]:min-w-0">
+      <div className="grid grid-cols-1 gap-3 pt-2 md:grid-cols-[1.4fr_1fr] md:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-3">
-          <Panel className="grid grid-cols-2 !py-4">
-            <div>
-              <p className="text-[13px] text-ink-3">{mm}월 지출</p>
-              <p className="mt-0.5 text-[22px] font-bold tracking-tight">{data ? won(spent) : '—'}</p>
+          <section className="rounded-3xl bg-surface px-4 pb-4 pt-5 md:px-6">
+            <div className="flex items-center justify-between px-1">
+              <h1 className="text-[22px] font-bold tracking-tight">
+                {mm}월 <span className="text-[15px] font-semibold text-ink-3">{month.slice(0, 4)}</span>
+              </h1>
+              <div className="flex items-center gap-1">
+                {month !== thisMonth() && (
+                  <button onClick={() => go(thisMonth())} className="mr-1 rounded-full bg-fill px-3 py-1.5 text-[13px] font-semibold text-ink-2">오늘</button>
+                )}
+                <button aria-label="이전 달" onClick={() => go(prevMonth(month))} className="flex h-9 w-9 items-center justify-center rounded-full text-ink-2 hover:bg-fill active:bg-line">
+                  <Chevron dir="left" />
+                </button>
+                <button aria-label="다음 달" onClick={() => go(nextMonth(month))} className="flex h-9 w-9 items-center justify-center rounded-full text-ink-2 hover:bg-fill active:bg-line">
+                  <Chevron dir="right" />
+                </button>
+              </div>
             </div>
-            <div className="border-l border-line pl-4">
-              <p className="text-[13px] text-ink-3">받은 혜택</p>
-              <p className="mt-0.5 text-[22px] font-bold tracking-tight text-brand">{data ? won(benefit) : '—'}</p>
-            </div>
-          </Panel>
 
-          <Panel className="!px-2 !py-3">
-            <div className="grid grid-cols-7 pb-1 text-center text-xs font-medium text-ink-3">
+            <div className="mt-3 flex items-end gap-5 px-1">
+              <div>
+                <p className="text-[13px] text-ink-3">지출</p>
+                <p className="text-[20px] font-bold tracking-tight">{data ? won(spent) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-[13px] text-ink-3">받은 혜택</p>
+                <p className="text-[20px] font-bold tracking-tight text-brand">{data ? `+${won(benefit)}` : '—'}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-7 text-center text-[12px] font-medium text-ink-3">
               {WEEK.map((w, i) => (
-                <span key={w} className={i === 0 ? 'text-bad/70' : i === 6 ? 'text-brand/70' : ''}>{w}</span>
+                <span key={w} className={i === 0 ? 'text-[#f9787f]' : i === 6 ? 'text-[#76abf8]' : ''}>{w}</span>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-y-1">
+            <div className="mt-1 grid grid-cols-7">
               {Array.from({ length: firstWeekday }, (_, i) => <span key={`b${i}`} />)}
               {Array.from({ length: days }, (_, i) => {
                 const key = `${month}-${String(i + 1).padStart(2, '0')}`;
                 const d = byDay.get(key);
                 const isSel = key === selected;
                 const isToday = key === today;
+                const wd = (firstWeekday + i) % 7;
+                const numColor = isSel ? 'text-white' : isToday ? 'text-brand' : wd === 0 ? 'text-[#f04452]' : wd === 6 ? 'text-[#3182f6]/80' : 'text-ink';
                 return (
                   <button
                     key={key}
                     onClick={() => setSelected(key)}
                     aria-pressed={isSel}
                     aria-label={`${mm}월 ${i + 1}일${d ? `, ${won(d.spent)} 지출` : ''}`}
-                    className={`flex h-14 flex-col items-center rounded-2xl pt-1.5 md:h-16 ${isSel ? 'bg-brand-soft' : 'active:bg-fill'}`}
+                    className="group flex h-[54px] flex-col items-center gap-0.5 pt-1 md:h-[64px]"
                   >
-                    <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[14px] font-semibold ${isToday ? 'bg-ink text-white' : isSel ? 'text-brand' : ''}`}>
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-semibold transition-colors ${isSel ? 'bg-brand' : 'group-hover:bg-fill'} ${numColor}`}>
                       {i + 1}
                     </span>
-                    {d && <span className="mt-0.5 text-[10px] font-medium leading-tight text-ink-2">{short(d.spent)}</span>}
-                    {d && d.benefit > 0 && <span className="mt-0.5 h-1 w-1 rounded-full bg-brand" />}
+                    <span className={`h-3 text-[10px] font-semibold leading-3 tracking-tight ${d && d.benefit > 0 ? 'text-brand' : 'text-ink-3'}`}>
+                      {d ? short(d.spent) : isToday && !isSel ? '오늘' : ''}
+                    </span>
                   </button>
                 );
               })}
             </div>
-          </Panel>
+          </section>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -149,5 +158,13 @@ export default function CalendarPage() {
         </BottomAction>
       </div>
     </Screen>
+  );
+}
+
+function Chevron({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={dir === 'left' ? 'M12.5 4.5 7 10l5.5 5.5' : 'M7.5 4.5 13 10l-5.5 5.5'} />
+    </svg>
   );
 }
