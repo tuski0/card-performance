@@ -17,7 +17,7 @@ export function resetRecurringRun() {
 }
 
 /** Creates due recurring payments once per page load; ignored if the table is not set up yet. */
-function ensureRecurring(db: ReturnType<typeof createClient>) {
+export function ensureRecurring(db: ReturnType<typeof createClient>) {
   generated ??= generateDue(db).catch((e) => console.warn('recurring payments skipped:', e?.message ?? e));
   return generated;
 }

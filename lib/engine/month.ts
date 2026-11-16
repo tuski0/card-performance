@@ -35,3 +35,16 @@ export function monthShape(month: string): { firstWeekday: number; days: number 
   const [y, m] = month.split('-').map(Number);
   return { firstWeekday: new Date(Date.UTC(y, m - 1, 1)).getUTCDay(), days: new Date(Date.UTC(y, m, 0)).getUTCDate() };
 }
+
+/** YYYY-MM-DD plus n days (calendar arithmetic, no timezone involved). */
+export function addDays(day: string, n: number): string {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** The Sunday-start week (7 days) that contains `day`. */
+export function weekOf(day: string): string[] {
+  const [y, m, d] = day.split('-').map(Number);
+  const sunday = addDays(day, -new Date(Date.UTC(y, m - 1, d)).getUTCDay());
+  return Array.from({ length: 7 }, (_, i) => addDays(sunday, i));
+}

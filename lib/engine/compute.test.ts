@@ -157,3 +157,15 @@ describe('brand-based matching', () => {
     expect(computeMonth('kb-nara', '2026-11', [p], {}).performance).toBe(0);
   });
 });
+
+describe('week helpers', async () => {
+  const { weekOf, addDays } = await import('./month');
+  it('weekOf returns the Sunday-start week even across months', () => {
+    expect(weekOf('2026-11-30')).toEqual(['2026-11-29', '2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04', '2026-12-05']);
+    expect(weekOf('2026-11-16')[0]).toBe('2026-11-15');
+  });
+  it('addDays crosses month and year ends', () => {
+    expect(addDays('2026-11-30', 1)).toBe('2026-12-01');
+    expect(addDays('2026-01-01', -1)).toBe('2025-12-31');
+  });
+});
