@@ -1,4 +1,4 @@
-# 2단계 작업 목록: 분류 개편, 마이페이지, 달력 가독성
+# 2단계 작업 목록: 분류 개편, 마이페이지, 달력 보기, 내역 통계
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,6 +18,7 @@
 - 계정마다 보유 카드를 고른다. 고르지 않은 계정은 전체 카드를 보여준다.
 - 가입은 앱에서 받지 않는다. 관리자가 Supabase 대시보드에서 계정을 만들어 준다.
 - 달력 날짜 칸은 금액을 12px 진한 글자로 키우고 혜택은 파란 줄로 따로 표시한다.
+- 일·주·월·연 보기 전환은 달력 탭으로 옮긴다. 내역 탭은 결제 목록(검색 포함)과 통계(대분류별, 카드별, 많이 쓴 곳, 월별 추이)를 맡는다.
 
 ## Global Constraints
 
@@ -26,7 +27,7 @@
 - 색과 부품은 `app/globals.css`의 토큰(`bg-brand`, `text-ink-3` 등)과 `components/ui.tsx`만 쓴다.
 - 브라우저 기본 `confirm()`/`alert()` 금지(앱 내 브라우저에서 막힘). 삭제는 "한 번 더 누르면 삭제" 두 단계 버튼.
 - Supabase 오류는 `Error` 인스턴스가 아니다. 메시지는 `errMsg(e, fallback)` (`lib/format.ts`)로 꺼낸다.
-- 개발 서버가 켜져 있을 때 `npm run build`를 돌리지 않는다(`.next`가 덮여 화면이 500이 된다). 검증은 `npx tsc --noEmit`, `npm run lint`, `npm test`로 하고, 빌드는 Task 7에서 서버를 끄고 한다.
+- 개발 서버가 켜져 있을 때 `npm run build`를 돌리지 않는다(`.next`가 덮여 화면이 500이 된다). 검증은 `npx tsc --noEmit`, `npm run lint`, `npm test`로 하고, 빌드는 Task 8에서 서버를 끄고 한다.
 - DB 비밀번호와 service_role 키는 쓰지 않는다. SQL은 사용자가 Supabase SQL Editor에서 실행한다.
 - 작업마다 테스트를 먼저 쓰고(실패 확인) 구현한 뒤 커밋한다. 화면 변경은 미리보기 서버(`.claude/launch.json`의 `web`)에서 휴대폰 폭(375px)과 데스크톱 폭으로 확인한다.
 - macOS다. `sed -i ''`를 쓰고, 한글이 든 파일을 스크립트로 고칠 때는 UTF-8로 읽고 쓴다.
@@ -169,15 +170,52 @@
 - [ ] **사용자 단계 안내(작업 보고에 적는다):** Supabase → Authentication → Sign In / Providers에서 "Allow new users to sign up"을 끄고, 지인 계정은 Authentication → Users → Add user로 만든다. 카드 요청은 Table Editor의 `card_requests`에서 본다.
 - [ ] 커밋 `feat: login only; accounts are created by the admin`.
 
-### Task 6: 내역에 대분류별 합계
+### Task 6: 달력 탭에 일·주·월·연 보기
 
-**Files:** Modify `lib/engine/history.ts`, `app/(tabs)/history/page.tsx`; Test `lib/engine/history.test.ts`
+**Files:** Modify `app/(tabs)/page.tsx`; Create `components/calendar/MonthView.tsx`, `WeekView.tsx`, `DayView.tsx`, `YearView.tsx` (지금 `page.tsx`의 달력 부분을 `MonthView`로 옮긴다); Modify `lib/engine/month.ts`; Test `lib/engine/compute.test.ts`의 calendar helpers 묶음
 
-- [ ] `byCategory(payments, benefit): { category: Category; spent: number; count: number }[]` — 취소 제외, 지출 큰 순, 0원은 빼기. 테스트 먼저.
-- [ ] 내역 요약 칸 아래에 선택한 기간의 대분류별 막대(이름, 금액, 비율 막대)를 넣는다. 결제가 없으면 숨긴다.
-- [ ] 커밋 `feat: spending by category in history`.
+**Interfaces:**
+- `weekOf(day: string): string[]` → 그 날이 속한 일요일 시작 7일의 `YYYY-MM-DD` (달 경계를 넘어도 7개). 테스트: `weekOf('2026-11-30')`은 `2026-11-29`부터 `2026-12-05`까지.
+- `addDays(day: string, n: number): string`. 테스트: `addDays('2026-11-30', 1) === '2026-12-01'`.
+- 데이터는 `useAllPayments()`(전체 결제 + 결제별 혜택)로 통일한다. 카드 실적 계산이 필요 없는 탭이므로 `useMonthData`는 쓰지 않는다. 단, 반복 결제 자동 기록(`ensureRecurring`)은 이 탭을 열 때도 실행되게 `useAllPayments`에서 먼저 부른다.
 
-### Task 7: 운영 빌드 확인
+**화면:**
+- 맨 위에 보기 전환(일, 주, 월, 연). 지금 내역 탭의 전환 버튼과 같은 모양. 기본은 월.
+- 월: 지금 달력 그대로(Task 1의 칸 디자인). 날짜를 누르면 아래에 그날 결제.
+- 주: 7일을 가로 한 줄로(요일, 날짜, 그날 지출). 날짜를 누르면 아래에 그날 결제. ‹ ›는 한 주씩 이동, 요약은 그 주 지출과 혜택.
+- 일: 하루의 결제 목록과 합계. ‹ ›는 하루씩 이동.
+- 연: 12개월을 3열 칸으로(월 이름, 지출, 혜택). 달을 누르면 그 달의 월 보기로 간다. ‹ ›는 한 해씩 이동.
+- 어느 보기에서든 선택한 날짜는 유지되고, "결제 기록" 버튼은 선택한 날짜로 입력 화면을 연다. 연 보기에서는 오늘 날짜로 연다.
+
+- [ ] 테스트(`weekOf`, `addDays`) → 구현.
+- [ ] 375px 폭에서 네 보기 모두 가로 넘침이 없는지 확인한다.
+- [ ] 커밋 `feat: day/week/month/year views on the calendar tab`.
+
+### Task 7: 내역 탭을 목록 + 통계로
+
+**Files:** Modify `app/(tabs)/history/page.tsx`, `lib/engine/history.ts`; Test `lib/engine/history.test.ts`
+
+**Interfaces:**
+- `byCategory(payments, benefit): { category: Category; spent: number; benefit: number; count: number }[]` — 취소 제외, 지출 큰 순, 0건은 빼기.
+- `byCard(payments, benefit): { cardId: CardId; spent: number; benefit: number; count: number }[]` — 같은 규칙.
+- `topMerchants(payments, limit = 5): { name: string; spent: number; count: number }[]` — 브랜드가 있으면 브랜드 이름으로, 없으면 `merchantKey`가 같은 것끼리 묶는다.
+- 기존 `byDay`, `byMonth`는 그대로 쓴다. `byWeek`, `byYear`는 달력 탭으로 옮겨 가므로 이 화면에서는 쓰지 않는다(함수는 남긴다).
+
+**화면:**
+- 일·주·월·연 전환 버튼은 없앤다. 대신 "목록 / 통계" 전환과 기간 선택(월 단위 ‹ ›, "올해 전체" 토글), 카드 필터.
+- 목록: 고른 기간의 결제를 날짜별로 묶어 최신순(지금 일별 보기). 위에 가맹점 이름 검색 입력.
+- 통계: 요약(지출, 받은 혜택, 건수) 아래에
+  1. 대분류별 지출: 이름, 금액, 비율 막대, 비율(%).
+  2. 카드별: 카드 칩, 지출, 받은 혜택.
+  3. 많이 쓴 곳 5개.
+  4. 월별 추이: 최근 6개월 지출 막대(기간이 "올해 전체"면 12개월).
+- 결제가 없으면 통계 대신 "이 기간에 기록한 결제가 없어요".
+
+- [ ] 테스트(`byCategory`, `byCard`, `topMerchants`) → 구현.
+- [ ] 화면 확인: 결제 3건 이상을 서로 다른 대분류로 기록해 비율 합이 100%인지 보고, 확인용 결제는 지운다.
+- [ ] 커밋 `feat: history list with search and statistics`.
+
+### Task 8: 운영 빌드 확인
 
 - [ ] 미리보기 서버를 끈다(`preview_stop`). `.next`를 지우고 `npm run build`가 오류 없이 끝나는지 확인한다.
 - [ ] `npm test`, `npm run lint` 최종 통과. `docs/designs/card-performance.md`의 "결정 사항"에 2단계 결정(이 문서 위쪽 목록)을 덧붙인다.
