@@ -3,13 +3,15 @@
 import Link from 'next/link';
 import { Badge, CardChip, Panel, Progress, Screen, TopBar } from '@/components/ui';
 import ExpiryBanner from '@/components/ExpiryBanner';
-import { CARDS, type CardId } from '@/lib/cards';
+import { CARDS } from '@/lib/cards';
 import { useMonthData } from '@/lib/data/useMonthData';
+import { useOwnedCards } from '@/lib/data/useOwnedCards';
 import type { MonthResult } from '@/lib/engine/compute';
 import { won } from '@/lib/format';
 
 export default function CardsPage() {
   const { data, error } = useMonthData();
+  const owned = useOwnedCards();
   const mm = data ? Number(data.month.slice(5)) : null;
 
   return (
@@ -22,7 +24,7 @@ export default function CardsPage() {
       {error && <Panel><p className="text-bad">{error}</p></Panel>}
       {!data && !error && <Panel><p className="text-ink-3">불러오는 중…</p></Panel>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 [&>*]:min-w-0">
-        {data && (Object.keys(CARDS) as CardId[]).map((id) => <CardPanel key={id} r={data.results[id]} />)}
+        {data && owned.map((id) => <CardPanel key={id} r={data.results[id]} />)}
       </div>
     </Screen>
   );

@@ -17,6 +17,7 @@ import { guessCategory, merchantKey } from '@/lib/merchants';
 import { getMerchantMemory, rememberMerchant } from '@/lib/data/merchantMemory';
 import { parsePaymentText } from '@/lib/parse';
 import { createClient } from '@/lib/supabase/client';
+import { useOwnedCards } from '@/lib/data/useOwnedCards';
 
 function toLocalInput(d: Date): string {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -101,6 +102,9 @@ export default function PaymentForm() {
     }).catch(() => {});
   }, [db, last4]);
 
+  const owned = useOwnedCards();
+  // Keep the selected card visible even if it was turned off after this payment was recorded.
+  const ownedList = (owned.includes(cardId) ? owned : [...owned, cardId]).map((id) => CARDS[id]);
   const brand = findBrand(merchant);
   const questions = pendingQuestions(cardId, category, brand?.id ?? null);
 
@@ -249,7 +253,7 @@ export default function PaymentForm() {
             </span>
           )}
           <div className="grid grid-cols-2 gap-2">
-            {Object.values(CARDS).map((c) => {
+            {ownedList.map((c) => {
               const on = c.id === cardId;
               return (
                 <button

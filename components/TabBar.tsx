@@ -7,6 +7,7 @@ const TABS = [
   { href: '/', label: '달력', icon: CalendarIcon, match: (p: string) => p === '/' },
   { href: '/history', label: '내역', icon: ListIcon, match: (p: string) => p.startsWith('/history') },
   { href: '/cards', label: '카드', icon: CardIcon, match: (p: string) => p.startsWith('/cards') },
+  { href: '/my', label: '마이', icon: UserIcon, match: (p: string) => p.startsWith('/my') },
 ];
 
 /** Bottom tab bar on phones, inline tabs in the header on desktop. */
@@ -69,6 +70,15 @@ function ListIcon({ active }: { active: boolean }) {
       <circle cx="4.5" cy="6.5" r="1.2" fill="currentColor" />
       <circle cx="4.5" cy="12" r="1.2" fill="currentColor" />
       <circle cx="4.5" cy="17.5" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function UserIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} aria-hidden>
+      <circle cx="12" cy="8.5" r="3.6" fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.12 : 0} />
+      <path d="M4.5 20c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5" strokeLinecap="round" />
     </svg>
   );
 }

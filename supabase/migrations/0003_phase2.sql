@@ -21,3 +21,20 @@ alter table public.merchant_categories enable row level security;
 drop policy if exists "own rows" on public.merchant_categories;
 create policy "own rows" on public.merchant_categories for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- 내 카드: 켜 둔 카드만 카드 탭·결제 입력에 나온다 (하나도 안 켰으면 전체)
+alter table public.user_cards add column if not exists owned boolean not null default false;
+
+-- 카드 추가 요청: 관리자가 Table Editor에서 보고 카드 규칙을 넣는다
+create table if not exists public.card_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  card_name text not null check (length(card_name) between 1 and 100),
+  note text,
+  created_at timestamptz not null default now()
+);
+alter table public.card_requests enable row level security;
+drop policy if exists "own insert" on public.card_requests;
+drop policy if exists "own select" on public.card_requests;
+create policy "own insert" on public.card_requests for insert to authenticated with check (user_id = auth.uid());
+create policy "own select" on public.card_requests for select to authenticated using (user_id = auth.uid());

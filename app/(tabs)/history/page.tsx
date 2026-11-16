@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { CARD_COLORS, CardChip, Panel, Screen, TopBar } from '@/components/ui';
-import { CARDS, type CardId, type Payment } from '@/lib/cards';
+import { type CardId, type Payment } from '@/lib/cards';
 import { useAllPayments } from '@/lib/data/useAllPayments';
+import { useOwnedCards } from '@/lib/data/useOwnedCards';
 import { thisMonth } from '@/lib/data/useMonthData';
 import { byDay, byMonth, byWeek, byYear, type Group } from '@/lib/engine/history';
 import { nextMonth, prevMonth } from '@/lib/engine/month';
@@ -23,6 +24,7 @@ const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 
 export default function HistoryPage() {
   const { payments, benefit, error } = useAllPayments();
+  const ownedIds = useOwnedCards();
   const [mode, setMode] = useState<Mode>('day');
   const [month, setMonth] = useState(thisMonth());
   const [year, setYear] = useState(thisMonth().slice(0, 4));
@@ -63,7 +65,7 @@ export default function HistoryPage() {
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
         <FilterChip on={card === 'all'} onClick={() => setCard('all')}>전체 카드</FilterChip>
-        {(Object.keys(CARDS) as CardId[]).map((id) => (
+        {ownedIds.map((id) => (
           <FilterChip key={id} on={card === id} onClick={() => setCard(id)}>
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: CARD_COLORS[id].bg }} />
             {CARD_COLORS[id].short}

@@ -11,6 +11,7 @@ import { won } from '@/lib/format';
 import { CATEGORIES, CATEGORY_LABELS, findBrand } from '@/lib/brands';
 import { guessCategory } from '@/lib/merchants';
 import { createClient } from '@/lib/supabase/client';
+import { useOwnedCards } from '@/lib/data/useOwnedCards';
 
 export default function RecurringPage() {
   const db = useMemo(() => createClient(), []);
@@ -104,6 +105,8 @@ function AddForm({ onSave, onCancel }: {
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const owned = useOwnedCards();
+  const ownedList = (owned.includes(cardId) ? owned : [...owned, cardId]).map((id) => CARDS[id]);
   const brand = findBrand(merchant);
   const questions = pendingQuestions(cardId, category, brand?.id ?? null);
 
@@ -150,7 +153,7 @@ function AddForm({ onSave, onCancel }: {
           </label>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {Object.values(CARDS).map((c) => (
+          {ownedList.map((c) => (
             <button type="button" key={c.id} onClick={() => setCardId(c.id)} aria-pressed={c.id === cardId}
               className={`flex items-center gap-2 rounded-2xl border-2 px-3 py-2.5 text-left text-[13px] font-semibold ${c.id === cardId ? 'border-brand bg-brand-soft' : 'border-transparent bg-fill'}`}>
               <CardChip id={c.id} size={26} />
