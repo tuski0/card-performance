@@ -103,14 +103,13 @@ export default function CalendarPage() {
                     onClick={() => setSelected(key)}
                     aria-pressed={isSel}
                     aria-label={`${mm}월 ${i + 1}일${d ? `, ${won(d.spent)} 지출` : ''}`}
-                    className="group flex h-[54px] flex-col items-center gap-0.5 pt-1 md:h-[64px]"
+                    className="group flex h-[66px] flex-col items-center gap-0.5 pt-1 md:h-[76px]"
                   >
-                    <span className={`flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-semibold transition-colors ${isSel ? 'bg-brand' : 'group-hover:bg-fill'} ${numColor}`}>
+                    <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-semibold transition-colors ${isSel ? 'bg-brand' : 'group-hover:bg-fill'} ${numColor}`}>
                       {i + 1}
                     </span>
-                    <span className={`h-3 text-[10px] font-semibold leading-3 tracking-tight ${d && d.benefit > 0 ? 'text-brand' : 'text-ink-3'}`}>
-                      {d ? short(d.spent) : isToday && !isSel ? '오늘' : ''}
-                    </span>
+                    <span className="h-3.5 text-[12px] font-bold leading-[14px] tracking-tight text-ink">{d ? short(d.spent) : ''}</span>
+                    <span className="h-3 text-[10px] font-semibold leading-3 text-brand">{d && d.benefit > 0 ? `+${short(d.benefit)}` : ''}</span>
                   </button>
                 );
               })}
