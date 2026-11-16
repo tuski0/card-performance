@@ -22,3 +22,16 @@ export function nextMonth(month: string): string {
 export function monthStartIso(month: string): string {
   return new Date(`${month}-01T00:00:00+09:00`).toISOString();
 }
+
+const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** 'YYYY-MM-DD' of an ISO timestamp in Korea time. */
+export function dayKey(iso: string): string {
+  return dayFmt.format(new Date(iso));
+}
+
+/** Weekday (0=Sun) of the 1st and number of days in the month. */
+export function monthShape(month: string): { firstWeekday: number; days: number } {
+  const [y, m] = month.split('-').map(Number);
+  return { firstWeekday: new Date(Date.UTC(y, m - 1, 1)).getUTCDay(), days: new Date(Date.UTC(y, m, 0)).getUTCDate() };
+}

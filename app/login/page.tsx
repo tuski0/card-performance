@@ -34,22 +34,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">카드 실적</h1>
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-8 px-5">
+      <div>
+        <p className="text-[15px] font-semibold text-brand">카드 실적</p>
+        <h1 className="mt-1 text-[26px] font-bold leading-snug">이번 달 혜택,<br />놓치지 않게</h1>
+      </div>
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <label className="text-sm" htmlFor="email">이메일</label>
-        <input id="email" type="email" autoComplete="email" value={email}
+        <input id="email" type="email" autoComplete="email" value={email} placeholder="이메일" aria-label="이메일"
           onChange={(e) => { setEmail(e.target.value); setMessage(''); }} className="input" />
-        <label className="text-sm" htmlFor="password">비밀번호</label>
         <input id="password" type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} value={password}
+          placeholder="비밀번호 (6자 이상)" aria-label="비밀번호"
           onChange={(e) => { setPassword(e.target.value); setMessage(''); }} className="input" />
-        {message && <p className="text-sm text-red-600">{message}</p>}
-        <button disabled={busy} className="rounded-lg bg-black px-3 py-2 text-white disabled:opacity-50">
+        {message && <p className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">{message}</p>}
+        <button disabled={busy} className="mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-brand text-[17px] font-semibold text-white disabled:opacity-40">
           {busy ? '잠시만요…' : mode === 'signin' ? '로그인' : '가입하고 시작'}
         </button>
       </form>
-      <button className="text-sm underline" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMessage(''); }}>
-        {mode === 'signin' ? '처음이에요 (가입)' : '이미 계정이 있어요 (로그인)'}
+      <button className="text-sm font-medium text-ink-3" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMessage(''); }}>
+        {mode === 'signin' ? '처음이에요 · 가입하기' : '이미 계정이 있어요 · 로그인'}
       </button>
     </main>
   );

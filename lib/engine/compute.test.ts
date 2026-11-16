@@ -117,3 +117,14 @@ describe('rules', () => {
     expect(pendingQuestions('kb-talktalk', 'starbucks').map((q) => q.key)).toEqual(['easyPay']);
   });
 });
+
+describe('calendar helpers', async () => {
+  const { dayKey, monthShape } = await import('./month');
+  it('dayKey uses Seoul time', () => {
+    expect(dayKey('2026-11-15T15:30:00Z')).toBe('2026-11-16');
+  });
+  it('monthShape for November 2026', () => {
+    expect(monthShape('2026-11')).toEqual({ firstWeekday: 0, days: 30 });
+    expect(monthShape('2026-02')).toEqual({ firstWeekday: 0, days: 28 });
+  });
+});
