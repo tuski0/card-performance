@@ -13,6 +13,17 @@ const toPayment = (r: PaymentRow): Payment => ({
   category: normalizeCategory(r.category), brand: r.brand ?? null, paidAt: r.paid_at, canceled: r.canceled, answers: r.answers ?? {},
 });
 
+/**
+ * Marks one payment canceled by changing only that column. Unlike saving the whole row,
+ * it cannot overwrite edits made on another device or bring back a payment that was deleted.
+ * Returns false when the payment no longer exists.
+ */
+export async function markCanceled(db: SupabaseClient, id: string): Promise<boolean> {
+  const { data, error } = await db.from('payments').update({ canceled: true }).eq('id', id).select('id');
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
 const PAGE = 1000; // Supabase returns at most 1,000 rows per request by default.
 
 /** Payments with paid_at in [from, to), oldest first. Reads page by page so nothing is cut off. */

@@ -97,3 +97,19 @@ describe('cancel notifications', () => {
     expect(findCancelTarget([pay('a', {})], { amount: 9999, merchant: 'CU', paidAt: '2026-11-16T00:40:00Z' })).toBeNull();
   });
 });
+
+describe('cancel target by card', () => {
+  const base = {
+    amount: 5980, merchant: '씨유(CU) 구로예성점', category: 'convenience' as const, brand: 'cu', canceled: false, answers: {},
+  };
+  const list = [
+    { ...base, id: 'youth', cardId: 'kb-youth-b' as const, paidAt: '2026-11-15T23:34:00Z' },
+    { ...base, id: 'toss', cardId: 'toss' as const, paidAt: '2026-11-16T00:05:00Z' },
+  ];
+  it('when the notice names a card, only that card is considered', () => {
+    expect(findCancelTarget(list, { amount: 5980, merchant: '씨유(CU) 구로예성점', paidAt: '2026-11-16T00:40:00Z', cardId: 'kb-youth-b' })?.id).toBe('youth');
+  });
+  it('without a card, the latest match wins', () => {
+    expect(findCancelTarget(list, { amount: 5980, merchant: '씨유(CU) 구로예성점', paidAt: '2026-11-16T00:40:00Z' })?.id).toBe('toss');
+  });
+});

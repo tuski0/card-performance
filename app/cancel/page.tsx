@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { BottomAction, CardChip, Panel, Screen, TopBar, primaryBtn, secondaryBtn } from '@/components/ui';
 import { CARDS, type Payment } from '@/lib/cards';
-import { listPayments, savePayment } from '@/lib/data/payments';
+import { getCardNumbers } from '@/lib/data/cardNumbers';
+import { listPayments, markCanceled } from '@/lib/data/payments';
 import { errMsg, won } from '@/lib/format';
 import { findCancelTarget } from '@/lib/parse';
 import { createClient } from '@/lib/supabase/client';
@@ -18,6 +19,7 @@ function CancelInner() {
   const amount = Number(params.get('amount'));
   const merchant = params.get('merchant') ?? '';
   const at = params.get('at') ?? new Date().toISOString();
+  const last4 = params.get('last4');
   const [target, setTarget] = useState<Payment | null | undefined>(undefined);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,16 +27,24 @@ function CancelInner() {
   useEffect(() => {
     const from = new Date(Date.parse(at) - 31 * 86_400_000).toISOString();
     const to = new Date(Date.parse(at) + 86_400_000).toISOString();
-    listPayments(db, { from, to })
-      .then((list) => setTarget(findCancelTarget(list, { amount, merchant, paidAt: at })))
+    // The notice carries the card's last 4 digits; use them to look only at that card's payments.
+    Promise.all([listPayments(db, { from, to }), last4 ? getCardNumbers(db).catch(() => ({})) : Promise.resolve({})])
+      .then(([list, numbers]) => {
+        const cardId = last4 ? (numbers as Record<string, never>)[last4] ?? null : null;
+        setTarget(findCancelTarget(list, { amount, merchant, paidAt: at, cardId }));
+      })
       .catch((e) => setError(errMsg(e, '불러오지 못했어요')));
-  }, [db, amount, merchant, at]);
+  }, [db, amount, merchant, at, last4]);
 
   async function confirm() {
     if (!target) return;
     setBusy(true);
     try {
-      await savePayment(db, { ...target, canceled: true });
+      if (!(await markCanceled(db, target.id))) {
+        setError('이 결제는 이미 지워졌어요. 내역을 새로 확인해 주세요.');
+        setBusy(false);
+        return;
+      }
       router.replace('/');
     } catch (e) {
       setError(errMsg(e, '저장하지 못했어요'));

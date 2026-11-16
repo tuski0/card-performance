@@ -15,7 +15,7 @@ import { won } from '@/lib/format';
 import { CATEGORIES, CATEGORY_LABELS, findBrand } from '@/lib/brands';
 import { guessCategory, merchantKey } from '@/lib/merchants';
 import { getMerchantMemory, rememberMerchant } from '@/lib/data/merchantMemory';
-import { parsePaymentText } from '@/lib/parse';
+import { parsePaymentText, toFormQuery } from '@/lib/parse';
 import { createClient } from '@/lib/supabase/client';
 import { useOwnedCards } from '@/lib/data/useOwnedCards';
 
@@ -117,6 +117,8 @@ export default function PaymentForm() {
   function applyPasted() {
     const p = parsePaymentText(pasteText);
     if (!p.amount) return setError('금액을 찾지 못했어요. 결제 알림 문자를 그대로 붙여넣어 주세요');
+    // A cancel notice is not a new payment: hand it to the cancel screen instead of filling this form.
+    if (p.canceled) return router.push(`/cancel?${toFormQuery(pasteText)}`);
     setAmount(p.amount.toLocaleString('ko-KR'));
     if (p.merchant) { setMerchant(p.merchant); if (!categoryTouched) setCategory(guessCategory(p.merchant)); }
     if (p.cardId) setCardId(p.cardId);
