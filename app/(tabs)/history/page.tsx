@@ -12,6 +12,8 @@ import { byCard, byCategory, byDay, byMonth, topMerchants } from '@/lib/engine/h
 import { monthKey, nextMonth, prevMonth } from '@/lib/engine/month';
 import { short, won } from '@/lib/format';
 import { merchantKey } from '@/lib/merchants';
+import { downloadXlsx } from '@/lib/export';
+import { errMsg } from '@/lib/format';
 
 type View = 'list' | 'stats';
 type Range = 'month' | 'year';
@@ -25,6 +27,8 @@ export default function HistoryPage() {
   const [month, setMonth] = useState(thisMonth());
   const [card, setCard] = useState<CardId | 'all'>('all');
   const [query, setQuery] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   const year = month.slice(0, 4);
   const inPeriod = (p: Payment) => (range === 'month' ? monthKey(p.paidAt) === month : monthKey(p.paidAt).startsWith(`${year}-`));
@@ -68,6 +72,20 @@ export default function HistoryPage() {
   const title = range === 'month' ? `${year}년 ${Number(month.slice(5))}월` : `${year}년 전체`;
   const loading = !payments && !error;
 
+  async function exportFile() {
+    setExporting(true);
+    setExportError('');
+    try {
+      const cardPart = card === 'all' ? '' : `_${CARDS[card].name}`;
+      const period = range === 'month' ? month : `${year}`;
+      await downloadXlsx(periodList, benefit, `카드실적_${period}${cardPart}.xlsx`);
+    } catch (e) {
+      setExportError(errMsg(e, '파일을 만들지 못했어요'));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function step(dir: -1 | 1) {
     if (range === 'month') setMonth(dir < 0 ? prevMonth(month) : nextMonth(month));
     else setMonth(`${Number(year) + dir}-${month.slice(5)}`);
@@ -75,7 +93,16 @@ export default function HistoryPage() {
 
   return (
     <Screen>
-      <TopBar title="내역" />
+      <TopBar
+        title="내역"
+        right={
+          <button onClick={exportFile} disabled={!payments || periodList.length === 0 || exporting}
+            className="rounded-full bg-surface px-3 py-2 text-[13px] font-semibold text-ink-2 disabled:opacity-40">
+            {exporting ? '만드는 중…' : '엑셀로 내보내기'}
+          </button>
+        }
+      />
+      {exportError && <p className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">{exportError}</p>}
 
       <div className="grid grid-cols-2 gap-1 rounded-2xl bg-line/60 p-1" role="tablist" aria-label="보기">
         {([['list', '목록'], ['stats', '통계']] as const).map(([id, label]) => (
