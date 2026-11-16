@@ -36,6 +36,7 @@ export default function PaymentForm() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!editId) return;
@@ -149,7 +150,7 @@ export default function PaymentForm() {
             type="button"
             disabled={saving}
             onClick={async () => {
-              if (!confirm('이 결제를 삭제할까요? 되돌릴 수 없어요.')) return;
+              if (!confirmDelete) return setConfirmDelete(true);
               setSaving(true);
               try {
                 await deletePayment(db, editId);
@@ -159,9 +160,9 @@ export default function PaymentForm() {
                 setSaving(false);
               }
             }}
-            className="rounded-lg border border-red-600 px-3 py-3 text-red-600 disabled:opacity-50"
+            className={`rounded-lg border border-red-600 px-3 py-3 disabled:opacity-50 ${confirmDelete ? 'bg-red-600 text-white' : 'text-red-600'}`}
           >
-            삭제
+            {confirmDelete ? '한 번 더 누르면 삭제돼요 (되돌릴 수 없음)' : '삭제'}
           </button>
         )}
       </form>
