@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const TABS = [
   { href: '/', label: '달력', icon: CalendarIcon, match: (p: string) => p === '/' },
+  { href: '/history', label: '내역', icon: ListIcon, match: (p: string) => p.startsWith('/history') },
   { href: '/cards', label: '카드', icon: CardIcon, match: (p: string) => p.startsWith('/cards') },
 ];
 
@@ -57,6 +58,17 @@ function CardIcon({ active }: { active: boolean }) {
     <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" aria-hidden>
       <rect x="2.5" y="5.5" width="19" height="13" rx="3" fillOpacity={active ? 0.12 : 0} />
       <path d="M2.5 10h19M6 15h4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ListIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} aria-hidden>
+      <path d="M9 6.5h11M9 12h11M9 17.5h11" strokeLinecap="round" />
+      <circle cx="4.5" cy="6.5" r="1.2" fill="currentColor" />
+      <circle cx="4.5" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="4.5" cy="17.5" r="1.2" fill="currentColor" />
     </svg>
   );
 }
