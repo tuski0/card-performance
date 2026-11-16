@@ -4,7 +4,8 @@ export type Category =
   | 'food' | 'cafe' | 'convenience' | 'transit' | 'telecom' | 'shopping'
   | 'leisure' | 'subscription' | 'overseas' | 'excluded' | 'etc' | 'unknown';
 
-export type Question = { key: string; text: string };
+/** `label` is a short name for the condition, e.g. "KB Pay". */
+export type Question = { key: string; text: string; label?: string };
 
 export type Payment = {
   id: string;

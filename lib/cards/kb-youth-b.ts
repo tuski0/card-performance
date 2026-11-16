@@ -1,6 +1,6 @@
 import type { CardRule } from './types';
 
-const kbPay = { key: 'kbPay', text: 'KB Pay로 결제했나요?' };
+const kbPay = { key: 'kbPay', text: 'KB Pay로 결제했나요?', label: 'KB Pay로' };
 
 export const kbYouthB: CardRule = {
   id: 'kb-youth-b',

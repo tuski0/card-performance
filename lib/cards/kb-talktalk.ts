@@ -1,6 +1,6 @@
 import type { CardRule } from './types';
 
-const easyPay = { key: 'easyPay', text: '간편결제(삼성페이·네이버페이·카카오페이·KB Pay 등)로 결제했나요?' };
+const easyPay = { key: 'easyPay', text: '간편결제(삼성페이·네이버페이·카카오페이·KB Pay 등)로 결제했나요?', label: '간편결제로' };
 
 export const kbTalkTalk: CardRule = {
   id: 'kb-talktalk',
