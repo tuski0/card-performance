@@ -1,4 +1,6 @@
-import { CARDS, type CardId, type Payment } from '@/lib/cards';
+import { BRANDS } from '@/lib/brands';
+import { CARDS, type CardId, type Category, type Payment } from '@/lib/cards';
+import { merchantKey } from '@/lib/merchants';
 import { computeMonth, type StartBalance } from './compute';
 import { dayKey, monthKey, monthShape } from './month';
 
@@ -77,4 +79,40 @@ export function benefitMap(
     for (const b of r.benefits) for (const a of b.applications) out.set(a.paymentId, (out.get(a.paymentId) ?? 0) + a.amount);
   }
   return out;
+}
+
+export type Stat<K> = { spent: number; benefit: number; count: number } & K;
+
+function tally<K extends string>(payments: Payment[], keyOf: (p: Payment) => K, benefit: Map<string, number>) {
+  const m = new Map<K, { spent: number; benefit: number; count: number }>();
+  for (const p of payments) {
+    if (p.canceled) continue;
+    const k = keyOf(p);
+    const cur = m.get(k) ?? { spent: 0, benefit: 0, count: 0 };
+    m.set(k, { spent: cur.spent + p.amount, benefit: cur.benefit + (benefit.get(p.id) ?? 0), count: cur.count + 1 });
+  }
+  return [...m.entries()].sort(([, a], [, b]) => b.spent - a.spent);
+}
+
+export function byCategory(payments: Payment[], benefit: Map<string, number>): Stat<{ category: Category }>[] {
+  return tally(payments, (p) => p.category, benefit).map(([category, v]) => ({ category, ...v }));
+}
+
+export function byCard(payments: Payment[], benefit: Map<string, number>): Stat<{ cardId: CardId }>[] {
+  return tally(payments, (p) => p.cardId, benefit).map(([cardId, v]) => ({ cardId, ...v }));
+}
+
+/** Most-spent merchants: brand name when known, else merchants with the same key are merged. */
+export function topMerchants(payments: Payment[], limit = 5): { name: string; spent: number; count: number }[] {
+  const names = new Map<string, string>();
+  const rows = tally(
+    payments,
+    (p) => {
+      const key = p.brand ? `brand:${p.brand}` : merchantKey(p.merchant);
+      if (!names.has(key)) names.set(key, p.brand ? (BRANDS.find((b) => b.id === p.brand)?.name ?? p.merchant) : p.merchant.trim());
+      return key;
+    },
+    new Map(),
+  );
+  return rows.slice(0, limit).map(([key, v]) => ({ name: names.get(key) ?? key, spent: v.spent, count: v.count }));
 }

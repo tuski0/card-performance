@@ -52,3 +52,33 @@ describe('history grouping', () => {
     expect([...m.values()]).toEqual([30]);
   });
 });
+
+import { byCard, byCategory, topMerchants } from './history';
+
+describe('statistics', () => {
+  const mk = (amount: number, over: Partial<Payment>): Payment => p('2026-11-02T03:00:00Z', amount, over);
+  const list = [
+    mk(10000, { category: 'cafe', brand: 'starbucks', merchant: '스타벅스 선릉', cardId: 'kb-talktalk' }),
+    mk(6000, { category: 'cafe', brand: 'starbucks', merchant: '스타벅스 강남', cardId: 'toss' }),
+    mk(4000, { category: 'food', brand: null, merchant: '동네식당 구로점', cardId: 'toss' }),
+    mk(3000, { category: 'food', brand: null, merchant: '동네식당구로점', cardId: 'toss' }),
+    mk(9999, { category: 'cafe', brand: 'starbucks', canceled: true }),
+  ];
+  const ben = new Map([[list[0].id, 5000], [list[1].id, 1]]);
+
+  it('byCategory sums by category, biggest first, canceled excluded', () => {
+    expect(byCategory(list, ben).map((c) => [c.category, c.spent, c.count])).toEqual([['cafe', 16000, 2], ['food', 7000, 2]]);
+    expect(byCategory(list, ben)[0].benefit).toBe(5001);
+  });
+
+  it('byCard sums by card, biggest first', () => {
+    expect(byCard(list, ben).map((c) => [c.cardId, c.spent])).toEqual([['toss', 13000], ['kb-talktalk', 10000]]);
+  });
+
+  it('topMerchants groups by brand name or merchant key, limited', () => {
+    const t = topMerchants(list, 5);
+    expect(t[0]).toEqual({ name: '스타벅스', spent: 16000, count: 2 });
+    expect(t[1]).toMatchObject({ spent: 7000, count: 2 });
+    expect(topMerchants(list, 1)).toHaveLength(1);
+  });
+});
