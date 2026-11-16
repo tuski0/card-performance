@@ -12,7 +12,8 @@ import { getCardNumbers, rememberCardNumber } from '@/lib/data/cardNumbers';
 import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type Starts } from '@/lib/engine/compute';
 import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
 import { won } from '@/lib/format';
-import { CATEGORY_LABELS, guessCategory } from '@/lib/merchants';
+import { CATEGORIES, CATEGORY_LABELS, findBrand } from '@/lib/brands';
+import { guessCategory } from '@/lib/merchants';
 import { parsePaymentText } from '@/lib/parse';
 import { createClient } from '@/lib/supabase/client';
 
@@ -87,7 +88,8 @@ export default function PaymentForm() {
     }).catch(() => {});
   }, [db, last4]);
 
-  const questions = pendingQuestions(cardId, category);
+  const brand = findBrand(merchant);
+  const questions = pendingQuestions(cardId, category, brand?.id ?? null);
 
   function onAmount(v: string) {
     const digits = v.replace(/[^\d]/g, '');
@@ -134,7 +136,7 @@ export default function PaymentForm() {
       const before = computeMonth(cardId, month, others, starts);
       const saved = await savePayment(db, {
         ...(editId ? { id: editId } : {}),
-        cardId, amount: n, merchant: merchant.trim(), category, paidAt: paidIso, canceled,
+        cardId, amount: n, merchant: merchant.trim(), category, brand: brand?.id ?? null, paidAt: paidIso, canceled,
         answers: Object.fromEntries(questions.map((q) => [q.key, answers[q.key] === true])),
       });
       if (last4 && knownCard !== cardId) {
@@ -143,7 +145,7 @@ export default function PaymentForm() {
       if (repeat && !editId) {
         // This payment is this month's occurrence; later months are generated automatically.
         await saveRecurring(db, {
-          cardId, amount: n, merchant: merchant.trim(), category, answers: saved.answers, active: true,
+          cardId, amount: n, merchant: merchant.trim(), category, brand: brand?.id ?? null, answers: saved.answers, active: true,
           dayOfMonth: Number(paidAt.slice(8, 10)), startMonth: month, generatedThrough: month,
         });
       }
@@ -254,8 +256,9 @@ export default function PaymentForm() {
               onChange={(e) => { setCategory(e.target.value as Category); setCategoryTouched(true); }}
               className="input appearance-none"
             >
-              {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {CATEGORIES.map((k) => <option key={k} value={k}>{CATEGORY_LABELS[k]}</option>)}
             </select>
+            {brand && <span className="text-xs text-ink-3">브랜드: {brand.name}</span>}
             {category === 'unknown' && <span className="text-xs text-warn">분류를 정하기 전까지는 할인을 계산하지 않아요</span>}
           </label>
 

@@ -29,7 +29,9 @@ const NEVER_BENEFIT: Category[] = ['unknown', 'excluded', 'overseas'];
 
 function matches(b: Benefit, p: Payment): boolean {
   if (NEVER_BENEFIT.includes(p.category)) return false;
-  if (b.categories !== 'all' && !b.categories.includes(p.category)) return false;
+  const byBrand = p.brand !== null && (b.brands ?? []).includes(p.brand);
+  const byCategory = b.categories === 'all' || (b.categories ?? []).includes(p.category);
+  if (!byBrand && !byCategory) return false;
   if (b.minAmount !== undefined && p.amount < b.minAmount) return false;
   return (b.requires ?? []).every((q) => p.answers[q.key] === true);
 }
@@ -80,7 +82,9 @@ export function computeMonth(cardId: CardId, month: string, payments: Payment[],
     .sort((a, b) => a.paidAt.localeCompare(b.paidAt));
 
   for (const p of active) {
-    let excludeFromPerformance = card.performanceExcludedCategories.includes(p.category);
+    let excludeFromPerformance =
+      card.performanceExcludedCategories.includes(p.category) ||
+      (p.brand !== null && (card.performanceExcludedBrands ?? []).includes(p.brand));
     const expired = card.validUntil !== undefined && dayKey(p.paidAt) > card.validUntil;
     if (tier && !expired) {
       card.benefits.forEach((b, i) => {
@@ -122,11 +126,13 @@ export function crossesTarget(before: MonthResult, after: MonthResult): boolean 
 }
 
 /** Extra yes/no questions needed to judge benefits for this card and category. */
-export function pendingQuestions(cardId: CardId, category: Category): Question[] {
+export function pendingQuestions(cardId: CardId, category: Category, brand: string | null = null): Question[] {
   if (NEVER_BENEFIT.includes(category)) return [];
   const seen = new Map<string, Question>();
   for (const b of CARDS[cardId].benefits) {
-    if (b.categories !== 'all' && !b.categories.includes(category)) continue;
+    const byBrand = brand !== null && (b.brands ?? []).includes(brand);
+    const byCategory = b.categories === 'all' || (b.categories ?? []).includes(category);
+    if (!byBrand && !byCategory) continue;
     for (const q of b.requires ?? []) seen.set(q.key, q);
   }
   return [...seen.values()];

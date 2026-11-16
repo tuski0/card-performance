@@ -4,8 +4,13 @@ import { computeMonth, crossesTarget, pendingQuestions } from './compute';
 import { monthKey } from './month';
 
 let seq = 0;
-function pay(cardId: CardId, amount: number, category: Category, paidAt: string, extra: Partial<Payment> = {}): Payment {
-  return { id: `p${++seq}`, cardId, amount, merchant: category, category, paidAt, canceled: false, answers: {}, ...extra };
+const BRAND_CATEGORY: Record<string, Category> = {
+  cu: 'convenience', starbucks: 'cafe', themepark: 'leisure', everland: 'leisure', 'public-transit': 'transit',
+};
+function pay(cardId: CardId, amount: number, brandOrCategory: string, paidAt: string, extra: Partial<Payment> = {}): Payment {
+  const brand = brandOrCategory in BRAND_CATEGORY ? brandOrCategory : null;
+  const category = (brand ? BRAND_CATEGORY[brand] : brandOrCategory) as Category;
+  return { id: `p${++seq}`, cardId, amount, merchant: brandOrCategory, category, brand, paidAt, canceled: false, answers: {}, ...extra };
 }
 const NOV = '2026-11';
 const prevStart = (performance: number) => ({ '2026-10': { performance, benefitUsed: {} } });
@@ -13,7 +18,7 @@ const benefit = (r: ReturnType<typeof computeMonth>, id: string) => r.benefits.f
 
 describe('acceptance examples from the spec', () => {
   it('youthCuKbPay: CU 5,000 with KB Pay → 1,000 off, 1,000 left', () => {
-    const p = pay('kb-youth-b', 5000, 'convenience', '2026-11-10T03:00:00Z', { answers: { kbPay: true } });
+    const p = pay('kb-youth-b', 5000, 'cu', '2026-11-10T03:00:00Z', { answers: { kbPay: true } });
     const r = computeMonth('kb-youth-b', NOV, [p], prevStart(200000));
     const b = benefit(r, 'convenience');
     expect(b.applications).toEqual([{ paymentId: p.id, amount: 1000 }]);
@@ -29,8 +34,8 @@ describe('acceptance examples from the spec', () => {
   });
 
   it('crossesTargetOnSave', () => {
-    const a = pay('kb-youth-b', 190000, 'other', '2026-11-02T03:00:00Z');
-    const b = pay('kb-youth-b', 20000, 'other', '2026-11-03T03:00:00Z');
+    const a = pay('kb-youth-b', 190000, 'etc', '2026-11-02T03:00:00Z');
+    const b = pay('kb-youth-b', 20000, 'etc', '2026-11-03T03:00:00Z');
     const before = computeMonth('kb-youth-b', NOV, [a], {});
     const after = computeMonth('kb-youth-b', NOV, [a, b], {});
     expect(crossesTarget(before, after)).toBe(true);
@@ -40,7 +45,7 @@ describe('acceptance examples from the spec', () => {
 
 describe('rules', () => {
   it('canceledExcluded', () => {
-    const p = pay('kb-youth-b', 5000, 'convenience', '2026-11-10T03:00:00Z', { answers: { kbPay: true }, canceled: true });
+    const p = pay('kb-youth-b', 5000, 'cu', '2026-11-10T03:00:00Z', { answers: { kbPay: true }, canceled: true });
     const r = computeMonth('kb-youth-b', NOV, [p], prevStart(200000));
     expect(r.performance).toBe(0);
     expect(benefit(r, 'convenience').used).toBe(0);
@@ -55,8 +60,8 @@ describe('rules', () => {
 
   it('capsAtRemainingLimit', () => {
     const ps = [
-      pay('kb-youth-b', 8000, 'convenience', '2026-11-01T03:00:00Z', { answers: { kbPay: true } }),
-      pay('kb-youth-b', 8000, 'convenience', '2026-11-02T03:00:00Z', { answers: { kbPay: true } }),
+      pay('kb-youth-b', 8000, 'cu', '2026-11-01T03:00:00Z', { answers: { kbPay: true } }),
+      pay('kb-youth-b', 8000, 'cu', '2026-11-02T03:00:00Z', { answers: { kbPay: true } }),
     ];
     const b = benefit(computeMonth('kb-youth-b', NOV, ps, prevStart(200000)), 'convenience');
     expect(b.applications.map((a) => a.amount)).toEqual([1600, 400]);
@@ -69,8 +74,8 @@ describe('rules', () => {
   });
 
   it('prevMonthEditChangesEligibility', () => {
-    const oct = pay('kb-youth-b', 200000, 'other', '2026-10-05T03:00:00Z');
-    const cu = pay('kb-youth-b', 5000, 'convenience', '2026-11-10T03:00:00Z', { answers: { kbPay: true } });
+    const oct = pay('kb-youth-b', 200000, 'etc', '2026-10-05T03:00:00Z');
+    const cu = pay('kb-youth-b', 5000, 'cu', '2026-11-10T03:00:00Z', { answers: { kbPay: true } });
     expect(computeMonth('kb-youth-b', NOV, [oct, cu], {}).eligibility).toBe('eligible');
     const r = computeMonth('kb-youth-b', NOV, [{ ...oct, canceled: true }, cu], {});
     expect(r.eligibility).toBe('ineligible');
@@ -85,7 +90,7 @@ describe('rules', () => {
 
   it('startBalance adds performance and consumes limits', () => {
     const starts = { ...prevStart(200000), [NOV]: { performance: 50000, benefitUsed: { convenience: 1500 } } };
-    const p = pay('kb-youth-b', 5000, 'convenience', '2026-11-10T03:00:00Z', { answers: { kbPay: true } });
+    const p = pay('kb-youth-b', 5000, 'cu', '2026-11-10T03:00:00Z', { answers: { kbPay: true } });
     const r = computeMonth('kb-youth-b', NOV, [p], starts);
     expect(r.scope).toBe('with-start');
     expect(r.performance).toBe(55000);
@@ -93,7 +98,7 @@ describe('rules', () => {
   });
 
   it('tossCashbackNoCap', () => {
-    const ps = [pay('toss', 1000, 'other', '2026-11-01T03:00:00Z'), pay('toss', 333, 'other', '2026-11-02T03:00:00Z')];
+    const ps = [pay('toss', 1000, 'etc', '2026-11-01T03:00:00Z'), pay('toss', 333, 'etc', '2026-11-02T03:00:00Z')];
     const b = benefit(computeMonth('toss', NOV, ps, {}), 'anywhere');
     expect(b.used).toBe(3);
     expect(b.cap).toBeNull();
@@ -102,7 +107,7 @@ describe('rules', () => {
 
   it('naraIntegratedCapLimitsAllBenefits', () => {
     const ps = [
-      pay('kb-nara', 50000, 'themepark', '2026-11-01T03:00:00Z'),
+      pay('kb-nara', 50000, 'everland', '2026-11-01T03:00:00Z'),
       pay('kb-nara', 20000, 'starbucks', '2026-11-02T03:00:00Z'),
     ];
     const r = computeMonth('kb-nara', NOV, ps, prevStart(100000));
@@ -112,9 +117,9 @@ describe('rules', () => {
   });
 
   it('pendingQuestions asks only what the benefit needs', () => {
-    expect(pendingQuestions('kb-youth-b', 'convenience').map((q) => q.key)).toEqual(['kbPay']);
-    expect(pendingQuestions('kb-youth-b', 'delivery')).toEqual([]);
-    expect(pendingQuestions('kb-talktalk', 'starbucks').map((q) => q.key)).toEqual(['easyPay']);
+    expect(pendingQuestions('kb-youth-b', 'convenience', 'cu').map((q) => q.key)).toEqual(['kbPay']);
+    expect(pendingQuestions('kb-youth-b', 'food', 'baemin')).toEqual([]);
+    expect(pendingQuestions('kb-talktalk', 'cafe', 'starbucks').map((q) => q.key)).toEqual(['easyPay']);
   });
 });
 
@@ -132,10 +137,23 @@ describe('calendar helpers', async () => {
 describe('validUntil', () => {
   it('stops toss cashback after the season ends', () => {
     const ps = [
-      { id: 'a', cardId: 'toss' as const, amount: 10000, merchant: 'x', category: 'other' as const, paidAt: '2027-01-20T05:00:00Z', canceled: false, answers: {} },
-      { id: 'b', cardId: 'toss' as const, amount: 10000, merchant: 'x', category: 'other' as const, paidAt: '2027-01-21T05:00:00Z', canceled: false, answers: {} },
+      { id: 'a', cardId: 'toss' as const, amount: 10000, merchant: 'x', category: 'etc' as const, brand: null, paidAt: '2027-01-20T05:00:00Z', canceled: false, answers: {} },
+      { id: 'b', cardId: 'toss' as const, amount: 10000, merchant: 'x', category: 'etc' as const, brand: null, paidAt: '2027-01-21T05:00:00Z', canceled: false, answers: {} },
     ];
     const b = computeMonth('toss', '2027-01', ps, {}).benefits[0];
     expect(b.applications.map((x) => x.paymentId)).toEqual(['a']);
+  });
+});
+
+describe('brand-based matching', () => {
+  it('a cafe payment without the starbucks brand gets no starbucks discount', () => {
+    const p = pay('kb-talktalk', 10000, 'cafe', '2026-11-10T03:00:00Z');
+    const r = computeMonth('kb-talktalk', '2026-11', [p], { '2026-10': { performance: 300000, benefitUsed: {} } });
+    expect(r.benefits.find((b) => b.id === 'starbucks')!.used).toBe(0);
+  });
+
+  it('nara: public transit is excluded from performance', () => {
+    const p = pay('kb-nara', 20000, 'public-transit', '2026-11-10T03:00:00Z');
+    expect(computeMonth('kb-nara', '2026-11', [p], {}).performance).toBe(0);
   });
 });

@@ -4,7 +4,7 @@ import { benefitMap, byDay, byMonth, byWeek, byYear } from './history';
 
 let n = 0;
 const p = (paidAt: string, amount: number, extra: Partial<Payment> = {}): Payment => ({
-  id: `p${++n}`, cardId: 'toss', amount, merchant: 'x', category: 'other', paidAt, canceled: false, answers: {}, ...extra,
+  id: `p${++n}`, cardId: 'toss', amount, merchant: 'x', category: 'etc', brand: null, paidAt, canceled: false, answers: {}, ...extra,
 });
 
 const pays = [

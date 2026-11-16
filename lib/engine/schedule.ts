@@ -7,6 +7,7 @@ export type Recurring = {
   amount: number;
   merchant: string;
   category: Category;
+  brand: string | null;
   dayOfMonth: number;
   answers: Record<string, boolean>;
   active: boolean;

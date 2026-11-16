@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { daysUntil, dueOccurrences, expiryNotices, type Recurring } from './schedule';
 
 const rec: Recurring = {
-  id: 'r1', cardId: 'kb-youth-b', amount: 55000, merchant: 'SKT', category: 'telecom',
+  id: 'r1', cardId: 'kb-youth-b', amount: 55000, merchant: 'SKT', category: 'telecom', brand: 'skt',
   dayOfMonth: 25, answers: {}, active: true, startMonth: '2026-09',
 };
 

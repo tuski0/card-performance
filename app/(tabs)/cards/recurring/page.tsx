@@ -8,7 +8,8 @@ import { deleteRecurring, listRecurring, saveRecurring, type RecurringRow } from
 import { pendingQuestions } from '@/lib/engine/compute';
 import { resetRecurringRun, thisMonth } from '@/lib/data/useMonthData';
 import { won } from '@/lib/format';
-import { CATEGORY_LABELS, guessCategory } from '@/lib/merchants';
+import { CATEGORIES, CATEGORY_LABELS, findBrand } from '@/lib/brands';
+import { guessCategory } from '@/lib/merchants';
 import { createClient } from '@/lib/supabase/client';
 
 export default function RecurringPage() {
@@ -103,7 +104,8 @@ function AddForm({ onSave, onCancel }: {
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const questions = pendingQuestions(cardId, category);
+  const brand = findBrand(merchant);
+  const questions = pendingQuestions(cardId, category, brand?.id ?? null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,7 +118,7 @@ function AddForm({ onSave, onCancel }: {
     try {
       // Start this month; if the day already passed, today's run records this month's payment too.
       await onSave({
-        cardId, amount: n, merchant: merchant.trim(), category, dayOfMonth: d, active: true, startMonth: thisMonth(),
+        cardId, amount: n, merchant: merchant.trim(), category, brand: brand?.id ?? null, dayOfMonth: d, active: true, startMonth: thisMonth(),
         answers: Object.fromEntries(questions.map((q) => [q.key, answers[q.key] === true])),
       });
     } catch (e) {
@@ -159,7 +161,7 @@ function AddForm({ onSave, onCancel }: {
         <label className="flex flex-col gap-1.5">
           <span className="text-[13px] text-ink-3">분류</span>
           <select value={category} onChange={(e) => { setCategory(e.target.value as Category); setTouched(true); }} className="input appearance-none">
-            {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {CATEGORIES.map((k) => <option key={k} value={k}>{CATEGORY_LABELS[k]}</option>)}
           </select>
         </label>
         {questions.map((q) => (

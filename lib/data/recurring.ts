@@ -1,4 +1,5 @@
-import type { CardId, Category } from '@/lib/cards';
+import { normalizeCategory } from '@/lib/brands';
+import type { CardId } from '@/lib/cards';
 import { dayKey } from '@/lib/engine/month';
 import { dueOccurrences, handledMonths, type Recurring } from '@/lib/engine/schedule';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -6,12 +7,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type RecurringRow = Recurring & { generatedThrough: string | null };
 
 type Row = {
-  id: string; card_id: string; amount: number; merchant: string; category: string; day_of_month: number;
+  id: string; card_id: string; amount: number; merchant: string; category: string; brand: string | null; day_of_month: number;
   answers: Record<string, boolean>; active: boolean; start_month: string; generated_through: string | null;
 };
 
 const fromRow = (r: Row): RecurringRow => ({
-  id: r.id, cardId: r.card_id as CardId, amount: r.amount, merchant: r.merchant, category: r.category as Category,
+  id: r.id, cardId: r.card_id as CardId, amount: r.amount, merchant: r.merchant, category: normalizeCategory(r.category), brand: r.brand ?? null,
   dayOfMonth: r.day_of_month, answers: r.answers ?? {}, active: r.active, startMonth: r.start_month,
   generatedThrough: r.generated_through,
 });
@@ -28,7 +29,7 @@ export async function saveRecurring(
 ): Promise<void> {
   const row = {
     ...(r.id ? { id: r.id } : {}),
-    card_id: r.cardId, amount: r.amount, merchant: r.merchant, category: r.category,
+    card_id: r.cardId, amount: r.amount, merchant: r.merchant, category: r.category, brand: r.brand,
     day_of_month: r.dayOfMonth, answers: r.answers, active: r.active, start_month: r.startMonth,
     ...(r.generatedThrough !== undefined ? { generated_through: r.generatedThrough } : {}),
   };
@@ -51,7 +52,7 @@ export async function generateDue(db: SupabaseClient, now = new Date()): Promise
     if (due.length === 0) continue;
     for (const d of due) {
       const { error } = await db.from('payments').insert({
-        card_id: rec.cardId, amount: rec.amount, merchant: rec.merchant, category: rec.category,
+        card_id: rec.cardId, amount: rec.amount, merchant: rec.merchant, category: rec.category, brand: rec.brand,
         paid_at: d.paidAt, canceled: false, answers: rec.answers, recurring_id: rec.id, occurrence: d.occurrence,
       });
       // 23505: another device already created this month's payment; treat as done.

@@ -1,15 +1,16 @@
-import type { CardId, Category, Payment } from '@/lib/cards';
+import { normalizeCategory } from '@/lib/brands';
+import type { CardId, Payment } from '@/lib/cards';
 import type { StartBalance } from '@/lib/engine/compute';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 type PaymentRow = {
-  id: string; card_id: string; amount: number; merchant: string; category: string;
+  id: string; card_id: string; amount: number; merchant: string; category: string; brand: string | null;
   paid_at: string; canceled: boolean; answers: Record<string, boolean>;
 };
 
 const toPayment = (r: PaymentRow): Payment => ({
   id: r.id, cardId: r.card_id as CardId, amount: r.amount, merchant: r.merchant,
-  category: r.category as Category, paidAt: r.paid_at, canceled: r.canceled, answers: r.answers ?? {},
+  category: normalizeCategory(r.category), brand: r.brand ?? null, paidAt: r.paid_at, canceled: r.canceled, answers: r.answers ?? {},
 });
 
 /** Payments with paid_at in [from, to). */
@@ -23,7 +24,7 @@ export async function listPayments(db: SupabaseClient, range: { from: string; to
 export async function savePayment(db: SupabaseClient, p: Omit<Payment, 'id'> & { id?: string }): Promise<Payment> {
   const row = {
     ...(p.id ? { id: p.id } : {}),
-    card_id: p.cardId, amount: p.amount, merchant: p.merchant, category: p.category,
+    card_id: p.cardId, amount: p.amount, merchant: p.merchant, category: p.category, brand: p.brand,
     paid_at: p.paidAt, canceled: p.canceled, answers: p.answers,
   };
   const { data, error } = await db.from('payments').upsert(row).select().single();
