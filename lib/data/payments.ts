@@ -47,3 +47,8 @@ export async function saveStart(db: SupabaseClient, cardId: CardId, month: strin
     .upsert({ card_id: cardId, month, performance: s.performance, benefit_used: s.benefitUsed });
   if (error) throw error;
 }
+
+export async function deletePayment(db: SupabaseClient, id: string): Promise<void> {
+  const { error } = await db.from('payments').delete().eq('id', id);
+  if (error) throw error;
+}

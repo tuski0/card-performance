@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { CARDS, type CardId, type Category, type Payment } from '@/lib/cards';
-import { listPayments, listStarts, savePayment } from '@/lib/data/payments';
+import { deletePayment, listPayments, listStarts, savePayment } from '@/lib/data/payments';
 import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type Starts } from '@/lib/engine/compute';
 import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
 import { CATEGORY_LABELS, guessCategory } from '@/lib/merchants';
@@ -23,6 +23,7 @@ type Outcome = { saved: Payment; before: MonthResult; after: MonthResult };
 export default function PaymentForm() {
   const db = useMemo(() => createClient(), []);
   const editId = useSearchParams().get('id');
+  const router = useRouter();
 
   const [cardId, setCardId] = useState<CardId>('kb-youth-b');
   const [amount, setAmount] = useState('');
@@ -143,6 +144,26 @@ export default function PaymentForm() {
         <button disabled={saving} className="rounded-lg bg-black px-3 py-3 text-white disabled:opacity-50">
           {saving ? '저장 중…' : '저장'}
         </button>
+        {editId && (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={async () => {
+              if (!confirm('이 결제를 삭제할까요? 되돌릴 수 없어요.')) return;
+              setSaving(true);
+              try {
+                await deletePayment(db, editId);
+                router.replace('/');
+              } catch (err) {
+                setError(err instanceof Error ? err.message : '삭제하지 못했어요.');
+                setSaving(false);
+              }
+            }}
+            className="rounded-lg border border-red-600 px-3 py-3 text-red-600 disabled:opacity-50"
+          >
+            삭제
+          </button>
+        )}
       </form>
     </main>
   );
