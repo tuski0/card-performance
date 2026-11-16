@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -14,13 +15,21 @@ export default function LoginPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.includes('@')) return setMessage('이메일 주소를 확인해 주세요.');
-    if (!password) return setMessage('비밀번호를 입력해 주세요.');
+    if (password.length < 6) return setMessage('비밀번호는 6자 이상이어야 해요.');
     setBusy(true);
     setMessage('');
-    const { error } = await createClient().auth.signInWithPassword({ email, password });
+    const auth = createClient().auth;
+    const { data, error } = mode === 'signin'
+      ? await auth.signInWithPassword({ email, password })
+      : await auth.signUp({ email, password });
     setBusy(false);
     if (error) {
-      return setMessage(error.message === 'Invalid login credentials' ? '이메일 또는 비밀번호가 맞지 않아요.' : error.message);
+      if (error.message === 'Invalid login credentials') return setMessage('이메일 또는 비밀번호가 맞지 않아요.');
+      if (/already registered/i.test(error.message)) return setMessage('이미 가입된 이메일이에요. 로그인해 주세요.');
+      return setMessage(error.message);
+    }
+    if (!data.session) {
+      return setMessage('가입은 됐지만 바로 로그인되지 않았어요. 잠시 뒤 로그인해 주세요.');
     }
     router.replace('/');
     router.refresh();
@@ -35,15 +44,17 @@ export default function LoginPage() {
       <form onSubmit={submit} className="flex flex-col gap-3">
         <input id="email" type="email" autoComplete="email" value={email} placeholder="이메일" aria-label="이메일"
           onChange={(e) => { setEmail(e.target.value); setMessage(''); }} className="input !bg-surface !border-line" />
-        <input id="password" type="password" autoComplete="current-password" value={password}
-          placeholder="비밀번호" aria-label="비밀번호"
+        <input id="password" type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} value={password}
+          placeholder="비밀번호 (6자 이상)" aria-label="비밀번호"
           onChange={(e) => { setPassword(e.target.value); setMessage(''); }} className="input !bg-surface !border-line" />
         {message && <p className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">{message}</p>}
         <button disabled={busy} className="mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-brand text-[17px] font-semibold text-white disabled:opacity-40">
-          {busy ? '잠시만요…' : '로그인'}
+          {busy ? '잠시만요…' : mode === 'signin' ? '로그인' : '가입하고 시작'}
         </button>
       </form>
-      <p className="text-center text-sm text-ink-3">계정은 관리자에게 요청해 주세요.</p>
+      <button className="text-sm font-medium text-ink-3" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMessage(''); }}>
+        {mode === 'signin' ? '처음이에요 · 가입하기' : '이미 계정이 있어요 · 로그인'}
+      </button>
     </main>
   );
 }
