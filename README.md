@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 카드 실적
 
-## Getting Started
+결제할 때마다 기록하고, 카드별 실적과 혜택을 휴대폰과 데스크톱에서 함께 보는 웹앱입니다.
+Next.js(App Router) + Supabase(로그인·DB) + Tailwind, Vercel 배포를 전제로 합니다.
 
-First, run the development server:
+- 요구사항: [docs/designs/card-performance.md](docs/designs/card-performance.md)
+- 카드 혜택 규칙: `lib/cards/` (카드를 추가할 때 여기에 규칙을 넣습니다)
+- 실적·혜택 계산: `lib/engine/`
+
+## 로컬 실행
 
 ```bash
+npm install
+cp .env.example .env.local   # Supabase URL과 publishable key를 채운다
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+테스트와 검사:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test
+npm run lint
+npx tsc --noEmit
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+개발 서버가 켜진 상태에서 `npm run build`를 돌리면 `.next`가 덮여 개발 화면이 깨집니다. 빌드는 서버를 끄고 하세요.
 
-## Learn More
+## Supabase 준비
 
-To learn more about Next.js, take a look at the following resources:
+1. SQL Editor에서 `supabase/migrations/`의 파일을 번호 순서대로 실행합니다 (0001 → 0004).
+2. Authentication → Sign In / Providers → Email: "Allow new users to sign up" 켜기, "Confirm email" 끄기.
+3. Project Settings → API에서 URL과 publishable key를 복사합니다. service_role key와 DB 비밀번호는 앱에 쓰지 않습니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Vercel 배포
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Vercel에서 Add New → Project → 이 GitHub 저장소를 Import.
+2. Environment Variables에 두 값을 넣습니다.
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+3. Deploy. 프레임워크와 빌드 명령은 자동으로 잡힙니다.
+4. 배포 주소를 휴대폰 Chrome으로 열고 메뉴 → "홈 화면에 추가"로 설치하면, 결제 알림을 공유할 때 공유 목록에 "카드 실적"이 나타납니다.
 
-## Deploy on Vercel
+## 카드 추가 요청 처리
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+마이 탭에서 들어온 요청은 Supabase Table Editor의 `card_requests`에서 봅니다. 혜택 규칙을 확인해 `lib/cards/`에 카드 파일을 추가하고 `lib/cards/index.ts`에 등록한 뒤 배포합니다.
