@@ -37,3 +37,28 @@ describe('parsePaymentText', () => {
     expect(parsePaymentText('안녕하세요', NOW)).toEqual({});
   });
 });
+
+describe('real KB notifications', () => {
+  const check = 'KB국민체크(5351)\n선*철님\n11/16 08:34\n5,980원\n씨유(CU) 구로예성점 사용';
+  const credit = 'KB국민카드4093승인\n선*철님\n9,600원 일시불\n11/15 20:47\n지에스25 수지하음점\n누적1,833,904원';
+
+  it('check card', () => {
+    expect(parsePaymentText(check, NOW)).toEqual({
+      amount: 5980, merchant: '씨유(CU) 구로예성점', last4: '5351',
+      paidAt: new Date('2026-11-16T08:34:00+09:00').toISOString(),
+    });
+  });
+
+  it('credit card with 일시불 and 누적', () => {
+    expect(parsePaymentText(credit, NOW)).toEqual({
+      amount: 9600, merchant: '지에스25 수지하음점', last4: '4093',
+      paidAt: new Date('2026-11-15T20:47:00+09:00').toISOString(),
+    });
+  });
+
+  it('with the KB app header line', () => {
+    const r = parsePaymentText(`카드 사용 알림 26.11.16 | 08:34:40\n${check}`, NOW);
+    expect(r.amount).toBe(5980);
+    expect(r.merchant).toBe('씨유(CU) 구로예성점');
+  });
+});

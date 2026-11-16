@@ -8,6 +8,7 @@ import { BottomAction, CardChip, Panel, Screen, TopBar, primaryBtn, secondaryBtn
 import { CARDS, type CardId, type Category, type Payment } from '@/lib/cards';
 import { deletePayment, listPayments, listStarts, savePayment } from '@/lib/data/payments';
 import { saveRecurring } from '@/lib/data/recurring';
+import { getCardNumbers, rememberCardNumber } from '@/lib/data/cardNumbers';
 import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type Starts } from '@/lib/engine/compute';
 import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
 import { won } from '@/lib/format';
@@ -45,6 +46,8 @@ export default function PaymentForm() {
   });
   const [merchant, setMerchant] = useState(params.get('merchant') ?? '');
   const [category, setCategory] = useState<Category>(() => guessCategory(params.get('merchant') ?? ''));
+  const [last4, setLast4] = useState(params.get('last4') ?? '');
+  const [knownCard, setKnownCard] = useState<CardId | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [categoryTouched, setCategoryTouched] = useState(false);
@@ -75,6 +78,15 @@ export default function PaymentForm() {
     });
   }, [db, editId]);
 
+  useEffect(() => {
+    if (!last4) return;
+    getCardNumbers(db).then((map) => {
+      const c = map[last4] ?? null;
+      setKnownCard(c);
+      if (c) setCardId(c);
+    }).catch(() => {});
+  }, [db, last4]);
+
   const questions = pendingQuestions(cardId, category);
 
   function onAmount(v: string) {
@@ -90,6 +102,7 @@ export default function PaymentForm() {
     if (p.merchant) { setMerchant(p.merchant); if (!categoryTouched) setCategory(guessCategory(p.merchant)); }
     if (p.cardId) setCardId(p.cardId);
     if (p.paidAt) setPaidAt(toLocalInput(new Date(p.paidAt)));
+    if (p.last4) setLast4(p.last4);
     setPasteOpen(false);
     setPasteText('');
     setError('');
@@ -124,6 +137,9 @@ export default function PaymentForm() {
         cardId, amount: n, merchant: merchant.trim(), category, paidAt: paidIso, canceled,
         answers: Object.fromEntries(questions.map((q) => [q.key, answers[q.key] === true])),
       });
+      if (last4 && knownCard !== cardId) {
+        await rememberCardNumber(db, cardId, last4).catch(() => {});
+      }
       if (repeat && !editId) {
         // This payment is this month's occurrence; later months are generated automatically.
         await saveRecurring(db, {
@@ -207,6 +223,13 @@ export default function PaymentForm() {
 
         <Panel className="flex flex-col gap-3">
           <span className="text-[13px] font-medium text-ink-3">어떤 카드로 냈나요</span>
+          {last4 && (
+            <span className={`rounded-xl px-3 py-2 text-xs ${knownCard ? 'bg-fill text-ink-2' : 'bg-warn-soft text-warn'}`}>
+              {knownCard
+                ? `끝자리 ${last4} 카드로 골랐어요`
+                : `끝자리 ${last4} 카드가 어느 카드인지 골라 주세요. 저장하면 다음부터 기억해요.`}
+            </span>
+          )}
           <div className="grid grid-cols-2 gap-2">
             {Object.values(CARDS).map((c) => {
               const on = c.id === cardId;

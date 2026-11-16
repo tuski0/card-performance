@@ -1,6 +1,6 @@
 import type { CardId } from '@/lib/cards';
 
-export type ParsedPayment = { amount?: number; merchant?: string; cardId?: CardId; paidAt?: string };
+export type ParsedPayment = { amount?: number; merchant?: string; cardId?: CardId; paidAt?: string; last4?: string };
 
 const CARD_KEYWORDS: [RegExp, CardId][] = [
   [/청춘대로|톡톡/, 'kb-talktalk'],
@@ -14,13 +14,18 @@ const NOISE = /\[?web발신\]?|\[[^\]]*\]|[가-힣]\*[가-힣]+님|승인|사용
 /** Best-effort read of a card payment notification or SMS. Unknown parts are left out. */
 export function parsePaymentText(text: string, now = new Date()): ParsedPayment {
   const out: ParsedPayment = {};
+  // Drop app header lines such as "카드 사용 알림 26.11.16 | 08:34:40".
+  text = text.split('\n').filter((l) => !/^\s*카드\s*사용\s*알림/.test(l) && !/\d{2}\.\d{2}\.\d{2}\s*\|/.test(l)).join('\n');
   const body = text.split(/잔액|누적/)[0];
 
   const amt = body.match(/([\d]{1,3}(?:,\d{3})+|\d+)\s*원/);
   if (!amt) return out;
   out.amount = Number(amt[1].replace(/,/g, ''));
 
-  out.cardId = CARD_KEYWORDS.find(([re]) => re.test(text))?.[1];
+  const cardId = CARD_KEYWORDS.find(([re]) => re.test(text))?.[1];
+  if (cardId) out.cardId = cardId;
+  const num = text.match(/\((\d{4})\)|카드\s*(\d{4})|(\d{4})\s*승인/);
+  if (num) out.last4 = num[1] ?? num[2] ?? num[3];
 
   const dt = text.match(/(\d{1,2})[/.-](\d{1,2})\s+(\d{1,2}):(\d{2})/);
   if (dt) {
@@ -43,7 +48,7 @@ export function parsePaymentText(text: string, now = new Date()): ParsedPayment 
       .replace(NOISE, ' ')
       .split(/\n/)
       .map((l) => l.trim())
-      .filter((l) => l && !/^[\d\s/:.,-]+$/.test(l))
+      .filter((l) => l && !/^[\d\s/:.,()-]+$/.test(l) && !/^카드\s*\d{4}$/.test(l))
       .pop();
   }
   merchant = merchant?.replace(/youth\s*club|청춘대로톡톡|청춘대로|톡톡|나라사랑/gi, '').replace(/\s+/g, ' ').trim();
@@ -59,5 +64,6 @@ export function toFormQuery(text: string, now = new Date()): string {
   if (p.merchant) q.set('merchant', p.merchant);
   if (p.cardId) q.set('card', p.cardId);
   if (p.paidAt) q.set('at', p.paidAt);
+  if (p.last4) q.set('last4', p.last4);
   return q.toString();
 }

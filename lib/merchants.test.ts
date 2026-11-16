@@ -21,3 +21,11 @@ describe('guessCategory', () => {
     expect(guessCategory(merchant)).toBe(category);
   });
 });
+
+describe('Korean spellings in card notifications', () => {
+  it.each([
+    ['씨유(CU) 구로예성점', 'convenience'],
+    ['지에스25 수지하음점', 'convenience'],
+    ['스타벅스코리아', 'starbucks'],
+  ])('%s → %s', (m, c) => expect(guessCategory(m)).toBe(c));
+});
