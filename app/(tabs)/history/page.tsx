@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CARD_COLORS, CardChip, Panel, Screen, TopBar } from '@/components/ui';
 import { CARDS, type CardId, type Payment } from '@/lib/cards';
 import { CATEGORY_LABELS } from '@/lib/brands';
@@ -14,6 +14,10 @@ import { short, won } from '@/lib/format';
 import { merchantKey } from '@/lib/merchants';
 import { downloadXlsx } from '@/lib/export';
 import { errMsg } from '@/lib/format';
+import { getBudgets } from '@/lib/data/budgets';
+import { budgetStatus } from '@/lib/engine/budget';
+import { createClient } from '@/lib/supabase/client';
+import type { Category } from '@/lib/cards';
 
 type View = 'list' | 'stats';
 type Range = 'month' | 'year';
@@ -29,6 +33,10 @@ export default function HistoryPage() {
   const [query, setQuery] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [budgets, setBudgets] = useState<Partial<Record<Category, number>>>({});
+  useEffect(() => {
+    getBudgets(createClient()).then(setBudgets).catch(() => {});
+  }, []);
 
   const year = month.slice(0, 4);
   const inPeriod = (p: Payment) => (range === 'month' ? monthKey(p.paidAt) === month : monthKey(p.paidAt).startsWith(`${year}-`));
@@ -194,6 +202,38 @@ export default function HistoryPage() {
           <Panel><p className="py-6 text-center text-ink-3">이 기간에 기록한 결제가 없어요</p></Panel>
         ) : (
           <>
+            {range === 'month' && (() => {
+              // Budgets are for all cards together, whatever the card filter says.
+              const monthAll = (payments ?? []).filter((p) => !p.canceled && monthKey(p.paidAt) === month);
+              const spentBy: Partial<Record<Category, number>> = {};
+              for (const p of monthAll) spentBy[p.category] = (spentBy[p.category] ?? 0) + p.amount;
+              const rows = budgetStatus(budgets, spentBy);
+              if (rows.length === 0) return null;
+              return (
+                <Panel>
+                  <h2 className="mb-3 text-[15px] font-semibold">예산 {card !== 'all' && <span className="text-xs font-normal text-ink-3">(모든 카드 합계)</span>}</h2>
+                  <div className="flex flex-col gap-3">
+                    {rows.map((b) => (
+                      <div key={b.category}>
+                        <div className="flex items-baseline justify-between text-[14px]">
+                          <span className="font-medium">{CATEGORY_LABELS[b.category]}</span>
+                          <span className={b.level === 'over' ? 'text-bad' : b.level === 'near' ? 'text-warn' : 'text-ink-2'}>
+                            <b>{won(b.spent)}</b> / {won(b.budget)}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-fill">
+                          <div className={`h-full rounded-full ${b.level === 'over' ? 'bg-bad' : b.level === 'near' ? 'bg-warn' : 'bg-good'}`} style={{ width: `${Math.min(100, b.ratio * 100)}%` }} />
+                        </div>
+                        <p className="mt-1 text-xs text-ink-3">
+                          {b.level === 'over' ? `${won(b.spent - b.budget)} 넘었어요` : `${won(b.budget - b.spent)} 남았어요`}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+              );
+            })()}
+
             <Panel>
               <h2 className="mb-3 text-[15px] font-semibold">분류별 지출</h2>
               <div className="flex flex-col gap-3">
