@@ -74,8 +74,14 @@ export default function CardPage() {
                   initial={data.starts[cardId]?.[data.month]}
                   initialPrev={data.starts[cardId]?.[prevMonth(data.month)]?.performance}
                   onSave={async (cur, prev) => {
-                    await saveStart(db, cardId, data.month, cur);
-                    if (prev !== null) await saveStart(db, cardId, prevMonth(data.month), { performance: prev, benefitUsed: {} });
+                    // Keep this month's flag if it was a statement total.
+                    await saveStart(db, cardId, data.month, { ...cur, isTotal: data.starts[cardId]?.[data.month]?.isTotal });
+                    const prevKey = prevMonth(data.month);
+                    const old = data.starts[cardId]?.[prevKey];
+                    // Only write last month when its figure changed, and keep whatever benefit usage it already had.
+                    if (prev !== null && prev !== old?.performance) {
+                      await saveStart(db, cardId, prevKey, { performance: prev, benefitUsed: old?.benefitUsed ?? {}, isTotal: true });
+                    }
                     setEditingStart(false);
                     await reload();
                   }}
@@ -182,8 +188,8 @@ function StartForm({ cardId, month, initial, initialPrev, onSave }: {
   return (
     <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
       <p className="text-[13px] text-ink-3">카드사 앱이나 명세서에 나온 값을 넣어 주세요. 비워 두면 0으로 봐요.</p>
-      {field('지난달 실적', prev, setPrev, '모르면 비워 두세요')}
-      {field(`${Number(month.slice(5))}월 기록 전 실적`, perf, setPerf)}
+      {field('지난달 실적 (명세서의 이용 실적 전체)', prev, setPrev, '모르면 비워 두세요')}
+      {field(`${Number(month.slice(5))}월, 앱에 기록하기 전까지의 실적`, perf, setPerf)}
       {card.benefits.filter((b) => b.monthlyCap !== undefined).map((b) =>
         <div key={b.id}>{field(`${b.label} 이미 받은 할인`, used[b.id], (v) => setUsed((u) => ({ ...u, [b.id]: v })))}</div>)}
       {err && <p className="text-sm text-bad">{err}</p>}

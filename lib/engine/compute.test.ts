@@ -183,3 +183,16 @@ describe('eligibility chain', () => {
     expect(computeMonth('kb-talktalk', '2026-11', ps, {}).eligibility).toBe('ineligible');
   });
 });
+
+describe('statement totals', () => {
+  it('a month given as a statement total is not added to recorded payments', () => {
+    const prev = [pay('kb-youth-b', 100000, 'etc', '2026-10-10T03:00:00Z')];
+    const starts = { '2026-10': { performance: 250000, benefitUsed: {}, isTotal: true } };
+    expect(computeMonth('kb-youth-b', '2026-10', prev, starts).performance).toBe(250000);
+  });
+  it('a plain start balance still adds to recorded payments', () => {
+    const cur = [pay('kb-youth-b', 100000, 'etc', '2026-11-10T03:00:00Z')];
+    const starts = { '2026-11': { performance: 50000, benefitUsed: {} } };
+    expect(computeMonth('kb-youth-b', '2026-11', cur, starts).performance).toBe(150000);
+  });
+});

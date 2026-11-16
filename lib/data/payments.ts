@@ -47,14 +47,16 @@ export async function listStarts(db: SupabaseClient): Promise<Partial<Record<Car
   if (error) throw error;
   const out: Partial<Record<CardId, Record<string, StartBalance>>> = {};
   for (const r of data as { card_id: CardId; month: string; performance: number; benefit_used: Record<string, number> }[]) {
-    (out[r.card_id] ??= {})[r.month] = { performance: r.performance, benefitUsed: r.benefit_used ?? {} };
+    // `__total` lives in benefit_used so no schema change is needed; it marks a statement total.
+    const { __total, ...benefitUsed } = r.benefit_used ?? {};
+    (out[r.card_id] ??= {})[r.month] = { performance: r.performance, benefitUsed, ...(__total ? { isTotal: true } : {}) };
   }
   return out;
 }
 
 export async function saveStart(db: SupabaseClient, cardId: CardId, month: string, s: StartBalance): Promise<void> {
   const { error } = await db.from('month_starts')
-    .upsert({ card_id: cardId, month, performance: s.performance, benefit_used: s.benefitUsed });
+    .upsert({ card_id: cardId, month, performance: s.performance, benefit_used: { ...s.benefitUsed, ...(s.isTotal ? { __total: 1 } : {}) } });
   if (error) throw error;
 }
 

@@ -1,7 +1,11 @@
 import { CARDS, type Benefit, type CardId, type CardRule, type Category, type Payment, type Question, type Tier } from '@/lib/cards';
 import { dayKey, monthKey, prevMonth } from './month';
 
-export type StartBalance = { performance: number; benefitUsed: Record<string, number> };
+/**
+ * What the user typed in for a month. `isTotal`: `performance` is the card statement's figure for the whole month,
+ * so recorded payments are not added on top. Otherwise it is performance from before recording started.
+ */
+export type StartBalance = { performance: number; benefitUsed: Record<string, number>; isTotal?: boolean };
 export type Starts = Record<string, StartBalance | undefined>;
 
 export type BenefitResult = {
@@ -103,7 +107,7 @@ export function computeMonth(cardId: CardId, month: string, payments: Payment[],
         if (b.kind === 'discount' && (b.excludesFromPerformance || !card.discountedCountsToward)) excludeFromPerformance = true;
       });
     }
-    if (!excludeFromPerformance) performance += p.amount;
+    if (!excludeFromPerformance && !start?.isTotal) performance += p.amount;
   }
 
   for (const r of results) r.remaining = r.cap === null ? null : Math.max(0, r.cap - r.used);
