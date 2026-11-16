@@ -1,11 +1,13 @@
 'use client';
 
+import { errMsg } from '@/lib/format';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { BottomAction, CardChip, Panel, Screen, TopBar, primaryBtn, secondaryBtn } from '@/components/ui';
 import { CARDS, type CardId, type Category, type Payment } from '@/lib/cards';
 import { deletePayment, listPayments, listStarts, savePayment } from '@/lib/data/payments';
+import { saveRecurring } from '@/lib/data/recurring';
 import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type Starts } from '@/lib/engine/compute';
 import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
 import { won } from '@/lib/format';
@@ -43,6 +45,7 @@ export default function PaymentForm() {
   const [saving, setSaving] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [repeat, setRepeat] = useState(false);
 
   useEffect(() => {
     if (!editId) return;
@@ -96,10 +99,17 @@ export default function PaymentForm() {
         cardId, amount: n, merchant: merchant.trim(), category, paidAt: paidIso, canceled,
         answers: Object.fromEntries(questions.map((q) => [q.key, answers[q.key] === true])),
       });
+      if (repeat && !editId) {
+        // This payment is this month's occurrence; later months are generated automatically.
+        await saveRecurring(db, {
+          cardId, amount: n, merchant: merchant.trim(), category, answers: saved.answers, active: true,
+          dayOfMonth: Number(paidAt.slice(8, 10)), startMonth: month, generatedThrough: month,
+        });
+      }
       const after = computeMonth(cardId, month, [...others, saved], starts);
       setOutcome({ saved, before, after });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '저장하지 못했어요');
+      setError(errMsg(err, '저장하지 못했어요'));
     } finally {
       setSaving(false);
     }
@@ -113,7 +123,7 @@ export default function PaymentForm() {
       await deletePayment(db, editId);
       router.replace('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '삭제하지 못했어요');
+      setError(errMsg(err, '삭제하지 못했어요'));
       setSaving(false);
     }
   }
@@ -204,6 +214,13 @@ export default function PaymentForm() {
             <span className="text-[13px] font-medium text-ink-3">결제 시각</span>
             <input type="datetime-local" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className="input" />
           </label>
+
+          {!editId && (
+            <label className="flex items-center justify-between rounded-2xl bg-fill px-4 py-3">
+              <span className="text-[15px]">매달 반복<span className="block text-xs text-ink-3">다음 달부터 매달 {Number(paidAt.slice(8, 10)) || ''}일에 자동으로 기록해요</span></span>
+              <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} className="h-5 w-5 accent-[var(--color-brand)]" />
+            </label>
+          )}
 
           {editId && (
             <label className="flex items-center justify-between rounded-2xl bg-fill px-4 py-3">

@@ -1,5 +1,6 @@
 'use client';
 
+import { errMsg } from '@/lib/format';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -10,6 +11,8 @@ import { useMonthData } from '@/lib/data/useMonthData';
 import type { StartBalance } from '@/lib/engine/compute';
 import { monthKey, prevMonth } from '@/lib/engine/month';
 import { won } from '@/lib/format';
+import { daysUntil } from '@/lib/engine/schedule';
+import { dayKey } from '@/lib/engine/month';
 
 export default function CardPage() {
   const cardId = useParams<{ id: string }>().id as CardId;
@@ -42,6 +45,14 @@ export default function CardPage() {
                 {r.eligibility === 'ineligible' && <Badge tone="bad">전월 실적 부족</Badge>}
               </div>
               <p className="mt-1 text-[30px] font-bold tracking-tight">{won(r.performance)}</p>
+              {card.validUntil && (() => {
+                const left = daysUntil(card.validUntil, dayKey(new Date().toISOString()));
+                return (
+                  <p className={`mt-2 inline-block rounded-lg px-2 py-1 text-xs font-semibold ${left <= 30 ? 'bg-warn-soft text-warn' : 'bg-fill text-ink-3'}`}>
+                    {left >= 0 ? `혜택 기간 ${card.validUntil}까지 · D-${left}` : `혜택 기간 종료 (${card.validUntil})`}
+                  </p>
+                );
+              })()}
               {r.target !== null && (
                 <>
                   <div className="mt-3"><Progress value={r.performance} max={r.target} color={done ? 'var(--color-good)' : undefined} height={10} /></div>
@@ -156,7 +167,7 @@ function StartForm({ cardId, month, initial, initialPrev, onSave }: {
         prev.trim() === '' ? null : num(prev),
       );
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '저장하지 못했어요');
+      setErr(errMsg(e, '저장하지 못했어요'));
       setBusy(false);
     }
   }

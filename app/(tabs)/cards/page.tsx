@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Badge, CardChip, Panel, Progress, Screen, TopBar } from '@/components/ui';
+import ExpiryBanner from '@/components/ExpiryBanner';
 import { CARDS, type CardId } from '@/lib/cards';
 import { useMonthData } from '@/lib/data/useMonthData';
 import type { MonthResult } from '@/lib/engine/compute';
@@ -13,7 +14,11 @@ export default function CardsPage() {
 
   return (
     <Screen>
-      <TopBar title={mm ? `${mm}월 카드 실적` : '카드 실적'} />
+      <TopBar
+        title={mm ? `${mm}월 카드 실적` : '카드 실적'}
+        right={<Link href="/cards/recurring" className="rounded-full bg-surface px-3 py-2 text-[13px] font-semibold text-ink-2">반복 결제</Link>}
+      />
+      <ExpiryBanner />
       {error && <Panel><p className="text-bad">{error}</p></Panel>}
       {!data && !error && <Panel><p className="text-ink-3">불러오는 중…</p></Panel>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 [&>*]:min-w-0">

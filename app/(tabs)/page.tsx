@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import ExpiryBanner from '@/components/ExpiryBanner';
 import { BottomAction, CardChip, Panel, Screen, primaryBtn } from '@/components/ui';
 import { CARDS } from '@/lib/cards';
 import { thisMonth, useMonthData } from '@/lib/data/useMonthData';
@@ -49,6 +50,7 @@ export default function CalendarPage() {
   return (
     <Screen>
       {error && <Panel><p className="text-bad">{error}</p></Panel>}
+      <div className="pt-2"><ExpiryBanner /></div>
 
       <div className="grid grid-cols-1 gap-3 pt-2 md:grid-cols-[1.4fr_1fr] md:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-3">

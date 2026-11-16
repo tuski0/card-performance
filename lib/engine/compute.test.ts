@@ -128,3 +128,14 @@ describe('calendar helpers', async () => {
     expect(monthShape('2026-02')).toEqual({ firstWeekday: 0, days: 28 });
   });
 });
+
+describe('validUntil', () => {
+  it('stops toss cashback after the season ends', () => {
+    const ps = [
+      { id: 'a', cardId: 'toss' as const, amount: 10000, merchant: 'x', category: 'other' as const, paidAt: '2027-01-20T05:00:00Z', canceled: false, answers: {} },
+      { id: 'b', cardId: 'toss' as const, amount: 10000, merchant: 'x', category: 'other' as const, paidAt: '2027-01-21T05:00:00Z', canceled: false, answers: {} },
+    ];
+    const b = computeMonth('toss', '2027-01', ps, {}).benefits[0];
+    expect(b.applications.map((x) => x.paymentId)).toEqual(['a']);
+  });
+});

@@ -1,5 +1,5 @@
 import { CARDS, type Benefit, type CardId, type CardRule, type Category, type Payment, type Question, type Tier } from '@/lib/cards';
-import { monthKey, prevMonth } from './month';
+import { dayKey, monthKey, prevMonth } from './month';
 
 export type StartBalance = { performance: number; benefitUsed: Record<string, number> };
 export type Starts = Record<string, StartBalance | undefined>;
@@ -81,7 +81,8 @@ export function computeMonth(cardId: CardId, month: string, payments: Payment[],
 
   for (const p of active) {
     let excludeFromPerformance = card.performanceExcludedCategories.includes(p.category);
-    if (tier) {
+    const expired = card.validUntil !== undefined && dayKey(p.paidAt) > card.validUntil;
+    if (tier && !expired) {
       card.benefits.forEach((b, i) => {
         if (!matches(b, p)) return;
         const r = results[i];

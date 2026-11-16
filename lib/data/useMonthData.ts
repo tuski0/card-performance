@@ -1,11 +1,26 @@
 'use client';
 
+import { errMsg } from '@/lib/format';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CARDS, type CardId, type Payment } from '@/lib/cards';
 import { computeMonth, type MonthResult, type StartBalance } from '@/lib/engine/compute';
 import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
 import { createClient } from '@/lib/supabase/client';
 import { listPayments, listStarts } from './payments';
+import { generateDue } from './recurring';
+
+let generated: Promise<unknown> | null = null;
+
+/** Lets the next data load check recurring payments again (after one is added or changed). */
+export function resetRecurringRun() {
+  generated = null;
+}
+
+/** Creates due recurring payments once per page load; ignored if the table is not set up yet. */
+function ensureRecurring(db: ReturnType<typeof createClient>) {
+  generated ??= generateDue(db).catch((e) => console.warn('recurring payments skipped:', e?.message ?? e));
+  return generated;
+}
 
 export type MonthData = {
   month: string;
@@ -26,12 +41,13 @@ export function useMonthData(month: string = thisMonth()) {
 
   const reload = useCallback(async () => {
     try {
+      await ensureRecurring(db);
       const range = { from: monthStartIso(prevMonth(prevMonth(month))), to: monthStartIso(nextMonth(month)) };
       const [payments, starts] = await Promise.all([listPayments(db, range), listStarts(db)]);
       setRaw({ month, payments, starts });
       setError('');
     } catch (e) {
-      setError(e instanceof Error ? e.message : '불러오지 못했어요.');
+      setError(errMsg(e, '불러오지 못했어요.'));
     }
   }, [db, month]);
 
