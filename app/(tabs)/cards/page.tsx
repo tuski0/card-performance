@@ -8,7 +8,9 @@ import { CARDS } from '@/lib/cards';
 import { useMonthData } from '@/lib/data/useMonthData';
 import { useOwnedCards } from '@/lib/data/useOwnedCards';
 import type { MonthResult } from '@/lib/engine/compute';
-import { won } from '@/lib/format';
+import { forecast } from '@/lib/engine/forecast';
+import { dayKey } from '@/lib/engine/month';
+import { short, won } from '@/lib/format';
 
 export default function CardsPage() {
   const { data, error } = useMonthData();
@@ -60,6 +62,10 @@ function CardPanel({ r }: { r: MonthResult }) {
           <p className={`mt-2 text-sm font-semibold ${done ? 'text-good' : 'text-brand'}`}>
             {done ? '다음 달 혜택 조건을 채웠어요' : `${won(r.remainingToTarget ?? 0)} 더 쓰면 다음 달 혜택`}
           </p>
+          {!done && r.month === dayKey(new Date().toISOString()).slice(0, 7) && r.performance > 0 && (() => {
+            const f = forecast(r.performance, r.target, dayKey(new Date().toISOString()));
+            return <p className={`mt-0.5 text-xs ${f.alert ? 'text-warn' : 'text-ink-3'}`}>이대로면 월말 약 {short(f.projected)}원 · 말일까지 {f.daysLeft}일</p>;
+          })()}
         </div>
       ) : (
         <p className="mt-4 text-[22px] font-bold tracking-tight">{won(r.performance)}</p>

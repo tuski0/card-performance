@@ -7,6 +7,7 @@ import WeekView from '@/components/calendar/WeekView';
 import YearView from '@/components/calendar/YearView';
 import { Chevron, DayList, EMPTY, WEEK_LABELS, sumStats, type DayStat } from '@/components/calendar/shared';
 import ExpiryBanner from '@/components/ExpiryBanner';
+import ShortfallBanner from '@/components/ShortfallBanner';
 import { BottomAction, Panel, Screen, primaryBtn } from '@/components/ui';
 import { useAllPayments } from '@/lib/data/useAllPayments';
 import { addDays, dayKey, monthShape, nextMonth, prevMonth, weekOf } from '@/lib/engine/month';
@@ -85,7 +86,7 @@ export default function CalendarPage() {
   return (
     <Screen>
       {error && <Panel><p className="text-bad">{error}</p></Panel>}
-      <div className="pt-2"><ExpiryBanner /></div>
+      <div className="flex flex-col gap-2 pt-2"><ExpiryBanner /><ShortfallBanner /></div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.4fr_1fr] md:items-start [&>*]:min-w-0">
         <div className="flex flex-col gap-3">
