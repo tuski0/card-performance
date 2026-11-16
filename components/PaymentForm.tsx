@@ -10,7 +10,7 @@ import { deletePayment, listPayments, listStarts, savePayment } from '@/lib/data
 import { saveRecurring } from '@/lib/data/recurring';
 import { getCardNumbers, rememberCardNumber } from '@/lib/data/cardNumbers';
 import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type Starts } from '@/lib/engine/compute';
-import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
+import { monthKey, monthStartIso, nextMonth } from '@/lib/engine/month';
 import { won } from '@/lib/format';
 import { CATEGORIES, CATEGORY_LABELS, findBrand } from '@/lib/brands';
 import { guessCategory, merchantKey } from '@/lib/merchants';
@@ -146,7 +146,7 @@ export default function PaymentForm() {
     setError('');
     try {
       const month = monthKey(paidIso);
-      const range = { from: monthStartIso(prevMonth(prevMonth(month))), to: monthStartIso(nextMonth(month)) };
+      const range = { from: '2000-01-01T00:00:00Z', to: monthStartIso(nextMonth(month)) };
       const [existing, allStarts] = await Promise.all([listPayments(db, range), listStarts(db)]);
       const starts: Starts = allStarts[cardId] ?? {};
       const others = existing.filter((p) => p.id !== editId);

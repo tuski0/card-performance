@@ -13,12 +13,21 @@ const toPayment = (r: PaymentRow): Payment => ({
   category: normalizeCategory(r.category), brand: r.brand ?? null, paidAt: r.paid_at, canceled: r.canceled, answers: r.answers ?? {},
 });
 
-/** Payments with paid_at in [from, to). */
+const PAGE = 1000; // Supabase returns at most 1,000 rows per request by default.
+
+/** Payments with paid_at in [from, to), oldest first. Reads page by page so nothing is cut off. */
 export async function listPayments(db: SupabaseClient, range: { from: string; to: string }): Promise<Payment[]> {
-  const { data, error } = await db.from('payments').select('*')
-    .gte('paid_at', range.from).lt('paid_at', range.to).order('paid_at');
-  if (error) throw error;
-  return (data as PaymentRow[]).map(toPayment);
+  const out: Payment[] = [];
+  for (let start = 0; ; start += PAGE) {
+    const { data, error } = await db.from('payments').select('*')
+      .gte('paid_at', range.from).lt('paid_at', range.to)
+      .order('paid_at').order('id')
+      .range(start, start + PAGE - 1);
+    if (error) throw error;
+    const rows = data as PaymentRow[];
+    out.push(...rows.map(toPayment));
+    if (rows.length < PAGE) return out;
+  }
 }
 
 export async function savePayment(db: SupabaseClient, p: Omit<Payment, 'id'> & { id?: string }): Promise<Payment> {

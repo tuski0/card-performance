@@ -47,7 +47,8 @@ function nextTarget(card: CardRule, performance: number): number | null {
   return mins.find((m) => m > performance) ?? mins[mins.length - 1];
 }
 
-export function computeMonth(cardId: CardId, month: string, payments: Payment[], starts: Starts, depth = 2): MonthResult {
+/** `depth` only guards against runaway recursion; history is followed until a month has no records. */
+export function computeMonth(cardId: CardId, month: string, payments: Payment[], starts: Starts, depth = 120): MonthResult {
   const card = CARDS[cardId];
   const mine = payments.filter((p) => p.cardId === cardId);
   const start = starts[month];

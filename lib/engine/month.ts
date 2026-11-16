@@ -1,11 +1,17 @@
 const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit' });
 
-/** 'YYYY-MM' of an ISO timestamp in Korea time. */
+const monthCache = new Map<string, string>();
+
+/** 'YYYY-MM' of an ISO timestamp in Korea time. Cached: called for every payment on every calculation. */
 export function monthKey(iso: string): string {
+  const hit = monthCache.get(iso);
+  if (hit) return hit;
   const parts = fmt.formatToParts(new Date(iso));
   const y = parts.find((p) => p.type === 'year')!.value;
   const m = parts.find((p) => p.type === 'month')!.value;
-  return `${y}-${m}`;
+  const key = `${y}-${m}`;
+  monthCache.set(iso, key);
+  return key;
 }
 
 export function prevMonth(month: string): string {
@@ -26,8 +32,15 @@ export function monthStartIso(month: string): string {
 const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
 
 /** 'YYYY-MM-DD' of an ISO timestamp in Korea time. */
+const dayCache = new Map<string, string>();
+
 export function dayKey(iso: string): string {
-  return dayFmt.format(new Date(iso));
+  let key = dayCache.get(iso);
+  if (!key) {
+    key = dayFmt.format(new Date(iso));
+    dayCache.set(iso, key);
+  }
+  return key;
 }
 
 /** Weekday (0=Sun) of the 1st and number of days in the month. */

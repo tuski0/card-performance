@@ -169,3 +169,17 @@ describe('week helpers', async () => {
     expect(addDays('2026-01-01', -1)).toBe('2025-12-31');
   });
 });
+
+describe('eligibility chain', () => {
+  it('follows recorded history back to its start, not just two months', () => {
+    // Aug: tiny → Sep ineligible → Sep starbucks not discounted, counts → Oct eligible
+    // → Oct starbucks discounted, excluded → Nov ineligible.
+    const ps = [
+      pay('kb-talktalk', 1000, 'etc', '2026-08-10T03:00:00Z'),
+      pay('kb-talktalk', 300000, 'starbucks', '2026-09-10T03:00:00Z'),
+      pay('kb-talktalk', 300000, 'starbucks', '2026-10-10T03:00:00Z'),
+    ];
+    expect(computeMonth('kb-talktalk', '2026-10', ps, {}).eligibility).toBe('eligible');
+    expect(computeMonth('kb-talktalk', '2026-11', ps, {}).eligibility).toBe('ineligible');
+  });
+});

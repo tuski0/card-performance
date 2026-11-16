@@ -4,7 +4,7 @@ import { errMsg } from '@/lib/format';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CARDS, type CardId, type Payment } from '@/lib/cards';
 import { computeMonth, type MonthResult, type StartBalance } from '@/lib/engine/compute';
-import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
+import { monthKey, monthStartIso, nextMonth } from '@/lib/engine/month';
 import { createClient } from '@/lib/supabase/client';
 import { listPayments, listStarts } from './payments';
 import { generateDue } from './recurring';
@@ -42,7 +42,8 @@ export function useMonthData(month: string = thisMonth()) {
   const reload = useCallback(async () => {
     try {
       await ensureRecurring(db);
-      const range = { from: monthStartIso(prevMonth(prevMonth(month))), to: monthStartIso(nextMonth(month)) };
+      // Eligibility depends on every earlier month that has records, so load all history up to this month.
+      const range = { from: '2000-01-01T00:00:00Z', to: monthStartIso(nextMonth(month)) };
       const [payments, starts] = await Promise.all([listPayments(db, range), listStarts(db)]);
       setRaw({ month, payments, starts });
       setError('');
