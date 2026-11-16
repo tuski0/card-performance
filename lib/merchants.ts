@@ -24,7 +24,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 
 const RULES: [RegExp, Category][] = [
   [/스타벅스|starbucks/i, 'starbucks'],
-  [/(^|\s)cu(\s|$)|gs25|씨유/i, 'convenience'],
+  [/(^|\s)cu(?![a-z])|gs25|씨유/i, 'convenience'],
   [/배달의민족|배민|쿠팡이츠/, 'delivery'],
   [/무신사|29cm|w컨셉|지그재그|에이블리/i, 'fashion'],
   [/올리브영|야놀자/, 'life'],

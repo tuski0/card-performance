@@ -5,6 +5,8 @@ describe('guessCategory', () => {
   it.each([
     ['CU 강남점', 'convenience'],
     ['GS25 역삼', 'convenience'],
+    ['CU강남점', 'convenience'],
+    ['CUBE카페', 'unknown'],
     ['스타벅스 선릉', 'starbucks'],
     ['STARBUCKS', 'starbucks'],
     ['배달의민족', 'delivery'],

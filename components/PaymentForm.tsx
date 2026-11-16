@@ -12,6 +12,7 @@ import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type S
 import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
 import { won } from '@/lib/format';
 import { CATEGORY_LABELS, guessCategory } from '@/lib/merchants';
+import { parsePaymentText } from '@/lib/parse';
 import { createClient } from '@/lib/supabase/client';
 
 function toLocalInput(d: Date): string {
@@ -33,12 +34,24 @@ export default function PaymentForm() {
   const editId = params.get('id');
   const router = useRouter();
 
-  const [cardId, setCardId] = useState<CardId>('kb-youth-b');
-  const [amount, setAmount] = useState('');
-  const [merchant, setMerchant] = useState('');
-  const [category, setCategory] = useState<Category>('unknown');
+  const shared = params.get('from') === 'share';
+  const [cardId, setCardId] = useState<CardId>(() => {
+    const c = params.get('card');
+    return c && c in CARDS ? (c as CardId) : 'kb-youth-b';
+  });
+  const [amount, setAmount] = useState(() => {
+    const a = Number(params.get('amount'));
+    return a > 0 ? a.toLocaleString('ko-KR') : '';
+  });
+  const [merchant, setMerchant] = useState(params.get('merchant') ?? '');
+  const [category, setCategory] = useState<Category>(() => guessCategory(params.get('merchant') ?? ''));
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
   const [categoryTouched, setCategoryTouched] = useState(false);
-  const [paidAt, setPaidAt] = useState(() => initialPaidAt(params.get('date')));
+  const [paidAt, setPaidAt] = useState(() => {
+    const at = params.get('at');
+    return at && !Number.isNaN(Date.parse(at)) ? toLocalInput(new Date(at)) : initialPaidAt(params.get('date'));
+  });
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
   const [canceled, setCanceled] = useState(false);
   const [error, setError] = useState('');
@@ -67,6 +80,18 @@ export default function PaymentForm() {
   function onAmount(v: string) {
     const digits = v.replace(/[^\d]/g, '');
     setAmount(digits ? Number(digits).toLocaleString('ko-KR') : '');
+    setError('');
+  }
+
+  function applyPasted() {
+    const p = parsePaymentText(pasteText);
+    if (!p.amount) return setError('금액을 찾지 못했어요. 결제 알림 문자를 그대로 붙여넣어 주세요');
+    setAmount(p.amount.toLocaleString('ko-KR'));
+    if (p.merchant) { setMerchant(p.merchant); if (!categoryTouched) setCategory(guessCategory(p.merchant)); }
+    if (p.cardId) setCardId(p.cardId);
+    if (p.paidAt) setPaidAt(toLocalInput(new Date(p.paidAt)));
+    setPasteOpen(false);
+    setPasteText('');
     setError('');
   }
 
@@ -144,12 +169,30 @@ export default function PaymentForm() {
     <Screen className="max-w-xl pb-6">
       <TopBar back="/" title={editId ? '결제 수정' : '결제 기록'} />
       <form onSubmit={submit} className="flex flex-col gap-3">
+        {shared && !editId && (
+          <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm text-brand">공유한 알림으로 채웠어요. 맞는지 확인하고 저장해 주세요.</p>
+        )}
+        {!editId && !shared && (pasteOpen ? (
+          <Panel className="flex flex-col gap-2">
+            <span className="text-[13px] font-medium text-ink-3">결제 알림 문자를 붙여넣으세요</span>
+            <textarea value={pasteText} onChange={(e) => { setPasteText(e.target.value); setError(''); }} rows={4}
+              placeholder={'[KB국민체크]\n11/16 15:33\n5,000원\nCU강남점 사용'} className="input resize-none text-[15px]" />
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setPasteOpen(false)} className="h-11 rounded-2xl bg-fill font-semibold text-ink-2">닫기</button>
+              <button type="button" onClick={applyPasted} className="h-11 rounded-2xl bg-brand font-semibold text-white">채우기</button>
+            </div>
+          </Panel>
+        ) : (
+          <button type="button" onClick={() => setPasteOpen(true)} className="flex items-center justify-center gap-1 rounded-2xl bg-surface py-3 text-sm font-semibold text-brand">
+            알림 문자 붙여넣기로 채우기
+          </button>
+        ))}
         <Panel className="flex flex-col gap-5">
           <label className="flex flex-col gap-1">
             <span className="text-[13px] font-medium text-ink-3">얼마를 썼나요</span>
             <div className="flex items-baseline gap-1 border-b-2 border-line pb-1 focus-within:border-brand">
               <input
-                inputMode="numeric" autoFocus={!editId} value={amount} onChange={(e) => onAmount(e.target.value)}
+                inputMode="numeric" autoFocus={!editId && !shared} value={amount} onChange={(e) => onAmount(e.target.value)}
                 placeholder="0" aria-label="금액"
                 className="w-full bg-transparent text-[32px] font-bold tracking-tight outline-none placeholder:text-line"
               />

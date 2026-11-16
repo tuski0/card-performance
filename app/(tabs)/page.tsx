@@ -149,14 +149,14 @@ export default function CalendarPage() {
             })}
           </Panel>
           <div className="hidden md:block">
-            <Link href={`/new?date=${selected}`} className={primaryBtn}>{selDate.getDate()}일에 결제 기록</Link>
+            <Link href={`/new?date=${selected}`} className={primaryBtn}>결제 기록</Link>
           </div>
         </div>
       </div>
 
       <div className="md:hidden">
         <BottomAction>
-          <Link href={`/new?date=${selected}`} className={primaryBtn}>{selDate.getDate()}일에 결제 기록</Link>
+          <Link href={`/new?date=${selected}`} className={primaryBtn}>결제 기록</Link>
         </BottomAction>
       </div>
     </Screen>
