@@ -1,11 +1,21 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
+/** Only same-site paths, so a crafted link can't send people elsewhere after login. */
+function safeNext(next: string | null): string {
+  return next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+}
+
 export default function LoginPage() {
+  return <Suspense><LoginForm /></Suspense>;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const next = safeNext(useSearchParams().get('next'));
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +41,7 @@ export default function LoginPage() {
     if (!data.session) {
       return setMessage('가입은 됐지만 바로 로그인되지 않았어요. 잠시 뒤 로그인해 주세요.');
     }
-    router.replace('/');
+    router.replace(next);
     router.refresh();
   }
 
