@@ -30,7 +30,7 @@ function initialPaidAt(date: string | null): string {
   return `${date}T${toLocalInput(now).slice(11)}`;
 }
 
-type Outcome = { saved: Payment; before: MonthResult; after: MonthResult };
+type Outcome = { saved: Payment; before: MonthResult; after: MonthResult; repeatFailed?: boolean };
 
 export default function PaymentForm() {
   const db = useMemo(() => createClient(), []);
@@ -162,15 +162,18 @@ export default function PaymentForm() {
       if (last4 && knownCard !== cardId) {
         await rememberCardNumber(db, cardId, last4).catch(() => {});
       }
+      // The payment is saved at this point. A failed repeat setup must not show "save failed",
+      // or retrying would record the payment twice.
+      let repeatFailed = false;
       if (repeat && !editId) {
         // This payment is this month's occurrence; later months are generated automatically.
         await saveRecurring(db, {
           cardId, amount: n, merchant: merchant.trim(), category, brand: brand?.id ?? null, answers: saved.answers, active: true,
           dayOfMonth: Number(paidAt.slice(8, 10)), startMonth: month, generatedThrough: month,
-        });
+        }).catch(() => { repeatFailed = true; });
       }
       const after = computeMonth(cardId, month, [...others, saved], starts);
-      setOutcome({ saved, before, after });
+      setOutcome({ saved, before, after, repeatFailed });
     } catch (err) {
       setError(errMsg(err, '저장하지 못했어요'));
     } finally {
@@ -353,6 +356,11 @@ function Result({ outcome, onAgain }: { outcome: Outcome; onAgain: () => void })
         <p className="text-[15px] text-ink-3">{saved.merchant} · {won(saved.amount)}{saved.canceled ? ' (취소)' : ''}</p>
       </div>
 
+      {outcome.repeatFailed && (
+        <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+          결제는 저장했지만 매달 반복 설정은 저장하지 못했어요. 카드 탭 → 반복 결제에서 따로 추가해 주세요.
+        </p>
+      )}
       <Panel className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <CardChip id={saved.cardId} size={28} />
