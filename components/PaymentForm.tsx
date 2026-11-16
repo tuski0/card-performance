@@ -13,7 +13,8 @@ import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type S
 import { monthKey, monthStartIso, nextMonth, prevMonth } from '@/lib/engine/month';
 import { won } from '@/lib/format';
 import { CATEGORIES, CATEGORY_LABELS, findBrand } from '@/lib/brands';
-import { guessCategory } from '@/lib/merchants';
+import { guessCategory, merchantKey } from '@/lib/merchants';
+import { getMerchantMemory, rememberMerchant } from '@/lib/data/merchantMemory';
 import { parsePaymentText } from '@/lib/parse';
 import { createClient } from '@/lib/supabase/client';
 
@@ -49,6 +50,7 @@ export default function PaymentForm() {
   const [category, setCategory] = useState<Category>(() => guessCategory(params.get('merchant') ?? ''));
   const [last4, setLast4] = useState(params.get('last4') ?? '');
   const [knownCard, setKnownCard] = useState<CardId | null>(null);
+  const [memory, setMemory] = useState<Record<string, Category>>({});
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [categoryTouched, setCategoryTouched] = useState(false);
@@ -78,6 +80,17 @@ export default function PaymentForm() {
       setCanceled(data.canceled);
     });
   }, [db, editId]);
+
+  useEffect(() => {
+    getMerchantMemory(db).then(setMemory).catch(() => {});
+  }, [db]);
+
+  // A remembered category fills in for merchants that are not a known brand.
+  useEffect(() => {
+    if (categoryTouched || findBrand(merchant)) return;
+    const c = memory[merchantKey(merchant)];
+    if (c) setCategory(c);
+  }, [memory, merchant, categoryTouched]);
 
   useEffect(() => {
     if (!last4) return;
@@ -139,6 +152,9 @@ export default function PaymentForm() {
         cardId, amount: n, merchant: merchant.trim(), category, brand: brand?.id ?? null, paidAt: paidIso, canceled,
         answers: Object.fromEntries(questions.map((q) => [q.key, answers[q.key] === true])),
       });
+      if (!brand && category !== 'unknown') {
+        await rememberMerchant(db, merchant.trim(), category).catch(() => {});
+      }
       if (last4 && knownCard !== cardId) {
         await rememberCardNumber(db, cardId, last4).catch(() => {});
       }

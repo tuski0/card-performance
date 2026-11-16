@@ -23,3 +23,18 @@ describe('guessCategory', () => {
     expect(guessCategory(merchant)).toBe(category);
   });
 });
+
+import { merchantKey } from './merchants';
+
+describe('merchantKey', () => {
+  it('ignores spacing and the branch suffix', () => {
+    expect(merchantKey('동네식당 구로점')).toBe(merchantKey('동네식당구로점'));
+  });
+  it('known brands share one key across branches', () => {
+    expect(merchantKey('씨유(CU) 구로예성점')).toBe('brand:cu');
+    expect(merchantKey('CU강남점')).toBe('brand:cu');
+  });
+  it('different merchants differ', () => {
+    expect(merchantKey('동네식당')).not.toBe(merchantKey('동네분식'));
+  });
+});
