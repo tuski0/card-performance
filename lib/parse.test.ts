@@ -62,3 +62,38 @@ describe('real KB notifications', () => {
     expect(r.merchant).toBe('씨유(CU) 구로예성점');
   });
 });
+
+import { findCancelTarget } from './parse';
+
+describe('cancel notifications', () => {
+  it('flags 승인취소 / 취소 texts', () => {
+    expect(parsePaymentText('KB국민체크(5351)\n선*철님\n11/16 09:10\n5,980원\n씨유(CU) 구로예성점 취소', NOW).canceled).toBe(true);
+    expect(parsePaymentText('KB국민카드4093승인취소\n선*철님\n9,600원\n11/15 21:00\n지에스25 수지하음점', NOW).canceled).toBe(true);
+    expect(parsePaymentText('KB국민체크(5351)\n11/16 08:34\n5,980원\n씨유(CU) 구로예성점 사용', NOW).canceled).toBeUndefined();
+  });
+
+  it('cancel merchant drops the 취소 word', () => {
+    expect(parsePaymentText('KB국민체크(5351)\n11/16 09:10\n5,980원\n씨유(CU) 구로예성점 취소', NOW).merchant).toBe('씨유(CU) 구로예성점');
+  });
+
+  const pay = (id: string, over: Record<string, unknown>) => ({
+    id, cardId: 'kb-youth-b' as const, amount: 5980, merchant: '씨유(CU) 구로예성점', category: 'convenience' as const,
+    brand: 'cu', paidAt: '2026-11-15T23:34:00Z', canceled: false, answers: {}, ...over,
+  });
+
+  it('findCancelTarget picks the latest same-amount same-merchant payment within 30 days', () => {
+    const list = [
+      pay('old', { paidAt: '2026-09-01T00:00:00Z' }),
+      pay('a', {}),
+      pay('b', { paidAt: '2026-11-16T00:10:00Z' }),
+      pay('done', { paidAt: '2026-11-16T00:20:00Z', canceled: true }),
+      pay('other', { amount: 1000, paidAt: '2026-11-16T00:30:00Z' }),
+    ];
+    const t = findCancelTarget(list, { amount: 5980, merchant: '씨유(CU) 구로예성점', paidAt: '2026-11-16T00:40:00Z' });
+    expect(t?.id).toBe('b');
+  });
+
+  it('findCancelTarget returns null when nothing matches', () => {
+    expect(findCancelTarget([pay('a', {})], { amount: 9999, merchant: 'CU', paidAt: '2026-11-16T00:40:00Z' })).toBeNull();
+  });
+});

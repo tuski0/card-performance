@@ -1,6 +1,7 @@
-import type { CardId } from '@/lib/cards';
+import type { CardId, Payment } from '@/lib/cards';
+import { merchantKey } from '@/lib/merchants';
 
-export type ParsedPayment = { amount?: number; merchant?: string; cardId?: CardId; paidAt?: string; last4?: string };
+export type ParsedPayment = { amount?: number; merchant?: string; cardId?: CardId; paidAt?: string; last4?: string; canceled?: true };
 
 const CARD_KEYWORDS: [RegExp, CardId][] = [
   [/청춘대로|톡톡/, 'kb-talktalk'],
@@ -9,7 +10,7 @@ const CARD_KEYWORDS: [RegExp, CardId][] = [
   [/토스/, 'toss'],
 ];
 
-const NOISE = /\[?web발신\]?|\[[^\]]*\]|[가-힣]\*[가-힣]+님|승인|사용|결제|일시불|체크카드|체크|신용|누적|토스뱅크|KB국민|KB|국민/gi;
+const NOISE = /승인취소|취소|\[?web발신\]?|\[[^\]]*\]|[가-힣]\*[가-힣]+님|승인|사용|결제|일시불|체크카드|체크|신용|누적|토스뱅크|KB국민|KB|국민/gi;
 
 /** Best-effort read of a card payment notification or SMS. Unknown parts are left out. */
 export function parsePaymentText(text: string, now = new Date()): ParsedPayment {
@@ -21,6 +22,7 @@ export function parsePaymentText(text: string, now = new Date()): ParsedPayment 
   const amt = body.match(/([\d]{1,3}(?:,\d{3})+|\d+)\s*원/);
   if (!amt) return out;
   out.amount = Number(amt[1].replace(/,/g, ''));
+  if (/취소/.test(text)) out.canceled = true;
 
   const cardId = CARD_KEYWORDS.find(([re]) => re.test(text))?.[1];
   if (cardId) out.cardId = cardId;
@@ -65,5 +67,21 @@ export function toFormQuery(text: string, now = new Date()): string {
   if (p.cardId) q.set('card', p.cardId);
   if (p.paidAt) q.set('at', p.paidAt);
   if (p.last4) q.set('last4', p.last4);
+  if (p.canceled) q.set('cancel', '1');
   return q.toString();
+}
+
+/** The payment a cancel notice refers to: same amount and merchant, not yet canceled, within 30 days before it. Latest wins. */
+export function findCancelTarget(
+  payments: Payment[],
+  notice: { amount: number; merchant: string; paidAt: string },
+): Payment | null {
+  const key = merchantKey(notice.merchant);
+  const end = Date.parse(notice.paidAt) + 60_000;
+  const start = end - 30 * 86_400_000;
+  const hits = payments.filter((p) => {
+    const t = Date.parse(p.paidAt);
+    return !p.canceled && p.amount === notice.amount && merchantKey(p.merchant) === key && t >= start && t <= end;
+  });
+  return hits.sort((a, b) => b.paidAt.localeCompare(a.paidAt))[0] ?? null;
 }

@@ -10,7 +10,8 @@ function ShareInner() {
   const router = useRouter();
   useEffect(() => {
     const text = [params.get('title'), params.get('text'), params.get('url')].filter(Boolean).join('\n');
-    router.replace(`/new?${toFormQuery(text)}`);
+    const query = toFormQuery(text);
+    router.replace(new URLSearchParams(query).get('cancel') ? `/cancel?${query}` : `/new?${query}`);
   }, [params, router]);
   return <p className="p-6 text-ink-3">공유한 내용을 읽는 중…</p>;
 }
