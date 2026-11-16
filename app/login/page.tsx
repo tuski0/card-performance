@@ -34,10 +34,10 @@ export default function LoginPage() {
       </div>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <input id="email" type="email" autoComplete="email" value={email} placeholder="이메일" aria-label="이메일"
-          onChange={(e) => { setEmail(e.target.value); setMessage(''); }} className="input" />
+          onChange={(e) => { setEmail(e.target.value); setMessage(''); }} className="input !bg-surface !border-line" />
         <input id="password" type="password" autoComplete="current-password" value={password}
           placeholder="비밀번호" aria-label="비밀번호"
-          onChange={(e) => { setPassword(e.target.value); setMessage(''); }} className="input" />
+          onChange={(e) => { setPassword(e.target.value); setMessage(''); }} className="input !bg-surface !border-line" />
         {message && <p className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">{message}</p>}
         <button disabled={busy} className="mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-brand text-[17px] font-semibold text-white disabled:opacity-40">
           {busy ? '잠시만요…' : '로그인'}
