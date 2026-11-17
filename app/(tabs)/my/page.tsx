@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import AppLink from '@/components/AppLink';
 import BudgetEditor from '@/components/BudgetEditor';
 import { CardChip, Panel, Screen, TopBar, primaryBtn } from '@/components/ui';
 import { searchCards } from '@/lib/cards/owned';
@@ -111,6 +112,8 @@ export default function MyPage() {
         })}
         {results.length === 0 && <p className="px-3 py-4 text-center text-sm text-ink-3">“{query}” 카드는 아직 없어요. 아래에서 추가를 요청해 주세요.</p>}
       </Panel>
+
+      <AppLink />
 
       <BudgetEditor db={db} />
 

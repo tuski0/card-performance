@@ -42,6 +42,14 @@ export async function listPayments(db: SupabaseClient, range: { from: string; to
   }
 }
 
+/** Payments recorded from notifications (the only ones that can need review), newest first. */
+export async function listNotificationPayments(db: SupabaseClient): Promise<Payment[]> {
+  const { data, error } = await db.from('payments').select('*').eq('source', 'notification')
+    .order('paid_at', { ascending: false }).limit(500);
+  if (error) throw error;
+  return (data as PaymentRow[]).map(toPayment);
+}
+
 export async function savePayment(db: SupabaseClient, p: Omit<Payment, 'id'> & { id?: string }): Promise<Payment> {
   const row = {
     ...(p.id ? { id: p.id } : {}),

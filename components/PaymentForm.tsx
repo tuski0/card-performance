@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BottomAction, CardChip, Panel, Screen, TopBar, primaryBtn, secondaryBtn } from '@/components/ui';
 import { CARDS, type CardId, type Category, type Payment } from '@/lib/cards';
 import { deletePayment, listPayments, listStarts, savePayment } from '@/lib/data/payments';
+import { resolveInbox } from '@/lib/data/review';
 import { saveRecurring } from '@/lib/data/recurring';
 import { getCardNumbers, rememberCardNumber } from '@/lib/data/cardNumbers';
 import { computeMonth, crossesTarget, pendingQuestions, type MonthResult, type Starts } from '@/lib/engine/compute';
@@ -36,6 +37,7 @@ export default function PaymentForm() {
   const db = useMemo(() => createClient(), []);
   const params = useSearchParams();
   const editId = params.get('id');
+  const inboxId = params.get('inbox');
   const router = useRouter();
 
   const shared = params.get('from') === 'share';
@@ -164,6 +166,8 @@ export default function PaymentForm() {
       if (last4 && knownCard !== cardId) {
         await rememberCardNumber(db, cardId, last4).catch(() => {});
       }
+      // Opened from the review list: the notice is handled now. Failing here must not look like a failed save.
+      if (inboxId) await resolveInbox(db, inboxId).catch(() => {});
       // The payment is saved at this point. A failed repeat setup must not show "save failed",
       // or retrying would record the payment twice.
       let repeatFailed = false;
