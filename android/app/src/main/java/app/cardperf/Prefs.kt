@@ -22,6 +22,13 @@ class Prefs(context: Context) {
             sp.edit().putString("recentKeys", value.takeLast(MAX_KEYS).joinToString("\n")).apply()
         }
 
+    /** Packages whose notifications may be read. Others are never inspected. */
+    var allowedPackages: Set<String>
+        get() = sp.getStringSet("allowedPackages", null)?.toSet() ?: DEFAULT_ALLOWED
+        set(value) {
+            sp.edit().putStringSet("allowedPackages", value.toSet()).apply()
+        }
+
     companion object {
         const val MAX_KEYS = 50
     }
