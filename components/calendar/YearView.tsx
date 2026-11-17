@@ -20,7 +20,7 @@ export default function YearView({ year, thisMonth, stats, onPickMonth }: {
           >
             <span className={`text-[14px] font-semibold ${cur ? 'text-brand' : 'text-ink-2'}`}>{i + 1}월</span>
             <span>
-              <span className="block text-[15px] font-bold tracking-tight text-ink">{s.spent > 0 ? short(s.spent) : '-'}</span>
+              <span className="block text-[15px] font-bold tracking-tight text-bad">{s.spent > 0 ? short(s.spent) : <span className="text-ink-3">-</span>}</span>
               <span className="block h-3 text-[11px] font-semibold leading-3 text-brand">{s.benefit > 0 ? `+${short(s.benefit)}` : ''}</span>
             </span>
           </button>

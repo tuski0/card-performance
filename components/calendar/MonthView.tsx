@@ -32,7 +32,7 @@ export default function MonthView({ month, selected, today, stats, onSelect }: {
               className="group flex h-[66px] flex-col items-center gap-0.5 pt-1 md:h-[76px]"
             >
               <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-semibold transition-colors ${isSel ? 'bg-brand' : 'group-hover:bg-fill'} ${numColor}`}>{i + 1}</span>
-              <span className="h-3.5 text-[12px] font-bold leading-[14px] tracking-tight text-ink">{d && d.spent > 0 ? short(d.spent) : ''}</span>
+              <span className="h-3.5 text-[12px] font-bold leading-[14px] tracking-tight text-bad">{d && d.spent > 0 ? short(d.spent) : ''}</span>
               <span className="h-3 text-[10px] font-semibold leading-3 text-brand">{d && d.benefit > 0 ? `+${short(d.benefit)}` : ''}</span>
             </button>
           );

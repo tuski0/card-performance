@@ -27,7 +27,7 @@ export default function WeekView({ selected, today, stats, onSelect }: {
             <span className="text-[12px] font-medium text-ink-3">{WEEK_LABELS[i]}</span>
             <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-semibold ${isSel ? 'bg-brand' : ''} ${color}`}>{day}</span>
             {day === 1 && <span className="text-[10px] text-ink-3">{Number(key.slice(5, 7))}월</span>}
-            <span className="mt-1 text-[12px] font-bold leading-[14px] tracking-tight text-ink">{d && d.spent > 0 ? short(d.spent) : ''}</span>
+            <span className="mt-1 text-[12px] font-bold leading-[14px] tracking-tight text-bad">{d && d.spent > 0 ? short(d.spent) : ''}</span>
             <span className="text-[10px] font-semibold leading-3 text-brand">{d && d.benefit > 0 ? `+${short(d.benefit)}` : ''}</span>
             {d && d.count > 0 && <span className="text-[10px] text-ink-3">{d.count}건</span>}
           </button>
