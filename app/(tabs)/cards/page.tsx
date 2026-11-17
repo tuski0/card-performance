@@ -27,7 +27,7 @@ export default function CardsPage() {
       {error && <Panel><p className="text-bad">{error}</p></Panel>}
       {!data && !error && <Panel><p className="text-ink-3">불러오는 중…</p></Panel>}
       {data && <RecommendPanel data={data} owned={owned} />}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
         {data && owned.map((id) => <CardPanel key={id} r={data.results[id]} />)}
       </div>
     </Screen>

@@ -45,27 +45,55 @@ export default function RecommendPanel({ data, owned }: { data: MonthData; owned
       {typedResult && <Best label={typedBrand?.name ?? typed} r={typedResult} />}
 
       {!typed && n > 0 && brands.length > 0 && (
-        <div className="flex flex-col divide-y divide-line">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {brands
             .map((b) => ({ b, r: run(b.id, b.category) }))
             .sort((x, y) => (y.r[0]?.benefit ?? 0) - (x.r[0]?.benefit ?? 0))
-            .slice(0, all ? undefined : 6)
-            .map(({ b, r }) => <Best key={b.id} label={b.name} r={r} compact />)}
+            .slice(0, all ? undefined : 8)
+            .map(({ b, r }) => <Tile key={b.id} label={b.name} r={r} onPick={() => setMerchant(b.name)} />)}
         </div>
       )}
-      {!typed && n > 0 && brands.length > 6 && (
-        <button onClick={() => setAll(!all)} className="text-[13px] font-semibold text-ink-3">{all ? '접기' : `${brands.length - 6}곳 더 보기`}</button>
+      {!typed && n > 0 && brands.length > 8 && (
+        <button onClick={() => setAll(!all)} className="text-[13px] font-semibold text-ink-3">{all ? '접기' : `${brands.length - 8}곳 더 보기`}</button>
       )}
     </Panel>
   );
 }
 
-function Best({ label, r, compact }: { label: string; r: Recommendation[]; compact?: boolean }) {
+/** One merchant as a tile: the best card for it and what it saves. Tapping fills the merchant box. */
+function Tile({ label, r, onPick }: { label: string; r: Recommendation[]; onPick: () => void }) {
   const top = r[0];
   if (!top) return null;
   const none = top.benefit === 0;
   return (
-    <div className={`flex items-center gap-3 ${compact ? 'py-2.5' : 'rounded-2xl bg-brand-soft px-3 py-3'}`}>
+    <button onClick={onPick} className="flex flex-col gap-2 rounded-2xl bg-fill p-3 text-left active:brightness-95">
+      <span className="truncate text-[14px] font-semibold">{label}</span>
+      {none ? (
+        <span className="text-[12px] text-ink-3">혜택 받는 카드가 없어요</span>
+      ) : (
+        <>
+          <span className="flex items-center gap-2">
+            <CardChip id={top.cardId} size={28} />
+            <span className="min-w-0 flex-1 truncate text-[12px] text-ink-2">
+              {CARD_COLORS[top.cardId].short}카드{top.conditions.length > 0 && ` · ${top.conditions.join(', ')}`}
+            </span>
+          </span>
+          <b className="text-[16px] text-brand">{won(top.benefit)}</b>
+          {top.eligibility !== 'eligible' && (
+            <span className="truncate text-[11px] text-warn">{top.eligibility === 'unknown' ? '전월 실적 미확인' : '이번 달 혜택 없음'}</span>
+          )}
+        </>
+      )}
+    </button>
+  );
+}
+
+function Best({ label, r }: { label: string; r: Recommendation[] }) {
+  const top = r[0];
+  if (!top) return null;
+  const none = top.benefit === 0;
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-brand-soft px-3 py-3">
       <span className="w-20 shrink-0 truncate text-[14px] font-semibold">{label}</span>
       {none ? (
         <span className="flex-1 text-[13px] text-ink-3">혜택 받는 카드가 없어요</span>
