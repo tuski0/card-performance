@@ -29,6 +29,13 @@ class NoticeFilterTest {
         assertNotEquals(base, NoticeFilter.keyOf("a", "k", 1L, "y"))
     }
 
+    @Test fun safeTakeDoesNotSplitSurrogatePairs() {
+        val s = "ab\uD83D\uDE00cd"
+        assertEquals("ab", NoticeFilter.safeTake(s, 3))
+        assertEquals("ab\uD83D\uDE00", NoticeFilter.safeTake(s, 4))
+        assertEquals(s, NoticeFilter.safeTake(s, 10))
+    }
+
     @Test fun keyFieldsCannotBeShiftedAcrossSeparators() {
         assertNotEquals(NoticeFilter.keyOf("a|b", "c", 1L, "x"), NoticeFilter.keyOf("a", "b|c", 1L, "x"))
     }

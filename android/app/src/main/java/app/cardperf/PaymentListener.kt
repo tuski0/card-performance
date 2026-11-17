@@ -22,7 +22,8 @@ class PaymentListener : NotificationListenerService() {
         val prefs = Prefs(this)
         val allowed = prefs.allowedPackages
         if (!NoticeFilter.isAllowedSource(pkg, allowed)) {
-            // Debug aid: reveal real package ids of payment-looking notices without storing or logging text.
+            // Debug aid: reveal real package ids of payment-looking notices. For non-allowlisted packages the text
+            // is extracted in memory only to test the payment regex and take its length; it is never stored, logged or sent.
             val text = extractText(n)
             if (NoticeFilter.looksLikePayment(text)) Log.i("CardPerf", "unlisted payment-like notice: pkg=$pkg len=${text.length}")
             return
@@ -30,14 +31,16 @@ class PaymentListener : NotificationListenerService() {
         val text = extractText(n)
         if (!NoticeFilter.shouldForward(pkg, text, allowed)) return
 
-        val key = NoticeFilter.keyOf(pkg, sbn.key ?: "", sbn.postTime, text)
+        // Check the token first: a notice that arrives before the phone is connected must not be marked seen.
+        if (prefs.token == null) return
+        val whenMs = if (n.`when` > 0) n.`when` else sbn.postTime
+        val key = NoticeFilter.keyOf(pkg, sbn.key ?: "", whenMs, text)
         val recent = prefs.recentKeys
         if (key in recent) return
         prefs.recentKeys = recent + key
-        if (prefs.token == null) return
 
         val request = OneTimeWorkRequestBuilder<IngestWorker>()
-            .setInputData(IngestWorker.input(text.take(MAX_TEXT), pkg, sbn.postTime, key))
+            .setInputData(IngestWorker.input(NoticeFilter.safeTake(text, MAX_TEXT), pkg, sbn.postTime, key))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
             .build()

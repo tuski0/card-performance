@@ -29,3 +29,8 @@ export function parseIngestRequest(authHeader: string | null | undefined, raw: u
   if (typeof b.key !== 'string' || b.key === '' || b.key.length > MAX_KEY) return { ok: false, status: 400, error: 'invalid key' };
   return { ok: true, token, body: { text: b.text, package: b.package, postedAt: b.postedAt, key: b.key } };
 }
+
+/** Maps a Postgres error code from the ingest SQL to an HTTP status: invalid input (22023) is the caller's fault. */
+export function dbErrorStatus(code: string | null | undefined): 400 | 500 {
+  return code === '22023' ? 400 : 500;
+}

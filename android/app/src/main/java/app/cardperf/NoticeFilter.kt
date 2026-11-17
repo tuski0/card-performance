@@ -29,9 +29,16 @@ object NoticeFilter {
     fun shouldForward(pkg: String, text: String, allowed: Set<String>): Boolean =
         isAllowedSource(pkg, allowed) && looksLikePayment(text)
 
+    /** Cuts to at most [max] chars without leaving a lone high surrogate at the end. */
+    fun safeTake(text: String, max: Int): String {
+        if (text.length <= max) return text
+        val end = if (max > 0 && Character.isHighSurrogate(text[max - 1])) max - 1 else max
+        return text.substring(0, end)
+    }
+
     /** sha256 hex of the event identity; length-prefixed so fields cannot be shifted across separators. */
-    fun keyOf(pkg: String, sbnKey: String, postTime: Long, text: String): String {
-        val raw = listOf(pkg, sbnKey, postTime.toString(), text).joinToString("") { "${it.length}:$it|" }
+    fun keyOf(pkg: String, sbnKey: String, whenMs: Long, text: String): String {
+        val raw = listOf(pkg, sbnKey, whenMs.toString(), text).joinToString("") { "${it.length}:$it|" }
         return MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
     }

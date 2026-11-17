@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseBearer, parseIngestRequest } from './ingestRequest';
+import { dbErrorStatus, parseBearer, parseIngestRequest } from './ingestRequest';
 
 const ok = { text: '5,000원 승인', package: 'x.y', postedAt: 1763249640000, key: 'k1' };
 
@@ -36,5 +36,13 @@ describe('parseIngestRequest', () => {
     expect(parseIngestRequest('Bearer t', { ...ok, key: '' })).toMatchObject({ status: 400 });
     expect(parseIngestRequest('Bearer t', { ...ok, key: 'k'.repeat(201) })).toMatchObject({ status: 400 });
     expect(parseIngestRequest('Bearer t', { ...ok, package: 5 })).toMatchObject({ status: 400 });
+  });
+});
+
+describe('dbErrorStatus', () => {
+  it('maps invalid-input SQLSTATE 22023 to 400 and everything else to 500', () => {
+    expect(dbErrorStatus('22023')).toBe(400);
+    expect(dbErrorStatus('23505')).toBe(500);
+    expect(dbErrorStatus(undefined)).toBe(500);
   });
 });

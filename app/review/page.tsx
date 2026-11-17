@@ -10,6 +10,12 @@ import { errMsg, won } from '@/lib/format';
 import { toFormQuery } from '@/lib/parse';
 import { createClient } from '@/lib/supabase/client';
 
+const REASON_TEXT: Record<string, string> = {
+  'no-card': '카드를 알 수 없어요',
+  'no-merchant': '가맹점을 읽지 못했어요',
+  'no-cancel-target': '취소할 결제를 하나로 정하지 못했어요',
+};
+
 export default function ReviewPage() {
   const db = useMemo(() => createClient(), []);
   const [data, setData] = useState<{ payments: Payment[]; inbox: InboxItem[] } | null>(null);
@@ -66,6 +72,7 @@ export default function ReviewPage() {
             <div key={i.id} className="flex items-center gap-3 rounded-2xl px-3 py-3">
               <Link href={`/new?${toFormQuery(i.text)}&inbox=${i.id}`} className="min-w-0 flex-1">
                 <p className="line-clamp-2 whitespace-pre-line text-[14px]">{i.text}</p>
+                {REASON_TEXT[i.reason] && <p className="mt-0.5 text-xs text-ink-3">{REASON_TEXT[i.reason]}</p>}
                 <p className="mt-0.5 text-xs text-ink-3">{dayKey(i.postedAt)}</p>
               </Link>
               <button onClick={() => dismiss(i.id)} className="shrink-0 text-sm font-semibold text-brand">지우기</button>

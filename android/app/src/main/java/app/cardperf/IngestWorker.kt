@@ -33,17 +33,21 @@ class IngestWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             val code = conn.responseCode
             when {
                 code in 200..299 -> Result.success()
-                code == 400 || code == 401 -> Result.failure() // no retry; 401 likely means disconnected
-                else -> Result.retry()
+                code in FINAL_CODES -> Result.failure() // no retry; 401 likely means disconnected
+                else -> retryOrGiveUp()
             }
         } catch (e: Exception) {
-            Result.retry()
+            retryOrGiveUp()
         } finally {
             conn?.disconnect()
         }
     }
 
+    private fun retryOrGiveUp(): Result = if (runAttemptCount >= MAX_ATTEMPTS) Result.failure() else Result.retry()
+
     companion object {
+        const val MAX_ATTEMPTS = 8
+        private val FINAL_CODES = setOf(400, 401, 403, 404, 413)
         const val ENDPOINT = "https://card-performance.vercel.app/api/ingest"
         const val TEXT = "text"
         const val PACKAGE = "package"

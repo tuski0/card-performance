@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { decideIngest, type IngestContext } from '@/lib/ingest';
-import { parseIngestRequest } from '@/lib/ingestRequest';
+import { dbErrorStatus, parseIngestRequest } from '@/lib/ingestRequest';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,10 @@ export async function POST(request: Request) {
   const saved = await db.rpc('ingest_save', {
     p_token: token, p_action: action, p_source_key: body.key, p_text: body.text, p_posted_at: postedAt.toISOString(),
   });
-  if (saved.error) return json({ error: 'server error' }, 500);
+  if (saved.error) {
+    const status = dbErrorStatus(saved.error.code);
+    return json({ error: status === 400 ? 'invalid input' : 'server error' }, status);
+  }
   if (saved.data === 'unauthorized') return json({ error: 'invalid token' }, 401);
   return json({ result: saved.data });
 }
