@@ -18,6 +18,8 @@ export type Payment = {
   paidAt: string;
   canceled: boolean;
   answers: Record<string, boolean>;
+  /** Where the payment came from; absent on older records. */
+  source?: 'manual' | 'notification';
 };
 
 export type Benefit = {
