@@ -1,11 +1,15 @@
 import Link from 'next/link';
 import type { CardId } from '@/lib/cards';
 
-export const CARD_COLORS: Record<CardId, { bg: string; fg: string; short: string }> = {
-  'kb-talktalk': { bg: '#ffbc00', fg: '#3d2e00', short: '톡톡' },
-  'kb-nara': { bg: '#4a5d3a', fg: '#ffffff', short: '나라' },
-  toss: { bg: '#0064ff', fg: '#ffffff', short: '토스' },
-  'kb-youth-b': { bg: '#ffd43b', fg: '#3d2e00', short: '청춘' },
+/**
+ * Per-card look. `bg` is the solid colour used for dots and legends; `from`/`to` paint the card face.
+ * Colours only evoke each card; they are not copies of the issuers' designs.
+ */
+export const CARD_COLORS: Record<CardId, { bg: string; from: string; to: string; fg: string; short: string; issuer: string }> = {
+  'kb-talktalk': { bg: '#ffbc00', from: '#ffd84d', to: '#ffaa00', fg: '#3d2e00', short: '톡톡', issuer: 'KB' },
+  'kb-nara': { bg: '#56693f', from: '#6f8552', to: '#34452a', fg: '#ffffff', short: '나라', issuer: 'KB' },
+  toss: { bg: '#1b64f2', from: '#3d84ff', to: '#0b4fd9', fg: '#ffffff', short: '토스', issuer: 'toss' },
+  'kb-youth-b': { bg: '#ff7a3d', from: '#ff9a52', to: '#f2552c', fg: '#ffffff', short: '청춘', issuer: 'KB' },
 };
 
 export function Screen({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -39,16 +43,71 @@ export function Progress({ value, max, color = 'var(--color-brand)', height = 8 
   );
 }
 
+/** Small card face: gradient, IC chip, and (when big enough) the issuer mark and short name. */
 export function CardChip({ id, size = 36 }: { id: CardId; size?: number }) {
   const c = CARD_COLORS[id];
+  const h = Math.round(size * 0.63);
+  const showText = size >= 30;
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-end rounded-[7px] p-[3px] text-[9px] font-bold leading-none"
-      style={{ width: size, height: Math.round(size * 0.66), background: c.bg, color: c.fg }}
+      className="relative inline-block shrink-0 overflow-hidden"
+      style={{
+        width: size, height: h, borderRadius: Math.max(4, size * 0.13), color: c.fg,
+        background: `linear-gradient(135deg, ${c.from}, ${c.to})`,
+        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12)',
+      }}
     >
-      {c.short}
+      {/* soft sheen across the face */}
+      <span className="absolute inset-0" style={{ background: 'linear-gradient(115deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 45%)' }} />
+      {/* IC chip */}
+      <span
+        className="absolute"
+        style={{
+          left: size * 0.1, top: h * 0.3, width: size * 0.2, height: h * 0.24, borderRadius: Math.max(1, size * 0.03),
+          background: 'linear-gradient(135deg, #f5dc8a, #c9a24a)', boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,0.25)',
+        }}
+      />
+      {showText && (
+        <>
+          <span className="absolute font-extrabold leading-none" style={{ right: size * 0.08, top: h * 0.1, fontSize: size * 0.16, opacity: 0.9 }}>
+            {c.issuer}
+          </span>
+          <span className="absolute font-bold leading-none" style={{ left: size * 0.1, bottom: h * 0.12, fontSize: size * 0.2 }}>
+            {c.short}
+          </span>
+        </>
+      )}
     </span>
+  );
+}
+
+/** Large card face for a card's own page. */
+export function CardFace({ id, name, last4 }: { id: CardId; name: string; last4?: string | null }) {
+  const c = CARD_COLORS[id];
+  return (
+    <div
+      aria-hidden
+      className="relative mx-auto aspect-[1.586] w-full max-w-[320px] overflow-hidden rounded-[18px] p-5"
+      style={{
+        color: c.fg, background: `linear-gradient(135deg, ${c.from}, ${c.to})`,
+        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06), 0 10px 24px -8px rgba(0,0,0,0.35)',
+      }}
+    >
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(115deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 42%)' }} />
+      <div className="absolute -right-10 -bottom-16 h-48 w-48 rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }} />
+      <div className="relative flex h-full flex-col justify-between">
+        <div className="flex items-start justify-between">
+          <span className="text-[13px] font-semibold opacity-90">{name}</span>
+          <span className="text-[18px] font-extrabold leading-none">{c.issuer}</span>
+        </div>
+        <span className="block h-8 w-11 rounded-md" style={{ background: 'linear-gradient(135deg, #f5dc8a, #c9a24a)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.2)' }} />
+        <div className="flex items-end justify-between">
+          <span className="text-[15px] font-semibold tracking-[0.2em] opacity-90">{last4 ? `•••• ${last4}` : '•••• ••••'}</span>
+          <span className="text-[13px] font-bold">{c.short}</span>
+        </div>
+      </div>
+    </div>
   );
 }
 

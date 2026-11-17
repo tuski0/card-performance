@@ -3,9 +3,10 @@
 import { errMsg } from '@/lib/format';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
-import { Badge, CardChip, Panel, Progress, Screen, TopBar, primaryBtn } from '@/components/ui';
+import { useEffect, useState } from 'react';
+import { Badge, CardChip, CardFace, Panel, Progress, Screen, TopBar, primaryBtn } from '@/components/ui';
 import { CARDS, type CardId } from '@/lib/cards';
+import { getCardNumbers } from '@/lib/data/cardNumbers';
 import { saveStart } from '@/lib/data/payments';
 import { useMonthData } from '@/lib/data/useMonthData';
 import type { StartBalance } from '@/lib/engine/compute';
@@ -20,6 +21,10 @@ export default function CardPage() {
   const { data, error, reload, db } = useMonthData();
   const [open, setOpen] = useState<string | null>(null);
   const [editingStart, setEditingStart] = useState(false);
+  const [last4, setLast4] = useState<string | null>(null);
+  useEffect(() => {
+    getCardNumbers(db).then((m) => setLast4(Object.entries(m).find(([, id]) => id === cardId)?.[0] ?? null)).catch(() => {});
+  }, [db, cardId]);
 
   if (!card) return <Screen><TopBar back="/cards" title="없는 카드예요" /></Screen>;
 
@@ -33,6 +38,7 @@ export default function CardPage() {
       <TopBar back="/cards" title={<span className="flex items-center gap-2 text-lg font-bold"><CardChip id={cardId} size={30} />{card.name}</span>} />
       {error && <Panel><p className="text-bad">{error}</p></Panel>}
       {!r && !error && <Panel><p className="text-ink-3">불러오는 중…</p></Panel>}
+      <div className="py-1"><CardFace id={cardId} name={card.name} last4={last4} /></div>
 
       {r && data && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-start [&>*]:min-w-0">
