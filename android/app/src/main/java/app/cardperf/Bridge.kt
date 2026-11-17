@@ -7,26 +7,28 @@ import android.webkit.JavascriptInterface
 import androidx.core.app.NotificationManagerCompat
 
 /** Exposed to the web app as `window.CardApp`. */
-class Bridge(private val context: Context) {
+class Bridge(private val context: Context, private val currentUrl: () -> String?) {
     private val prefs = Prefs(context)
+
+    private fun allowed() = isAppUrl(currentUrl())
 
     @JavascriptInterface
     fun setToken(token: String) {
-        prefs.token = token
+        if (allowed()) prefs.token = token
     }
 
     @JavascriptInterface
-    fun hasToken(): Boolean = prefs.token != null
+    fun hasToken(): Boolean = allowed() && prefs.token != null
 
     @JavascriptInterface
     fun hasNotificationAccess(): Boolean =
-        NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+        allowed() && NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
 
     @JavascriptInterface
-    fun openNotificationAccess() = launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+    fun openNotificationAccess() = if (allowed()) launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) else Unit
 
     @JavascriptInterface
-    fun openBatterySettings() = launch(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+    fun openBatterySettings() = if (allowed()) launch(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) else Unit
 
     private fun launch(intent: Intent) {
         try {

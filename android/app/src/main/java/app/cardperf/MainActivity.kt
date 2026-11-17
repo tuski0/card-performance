@@ -1,7 +1,7 @@
 package app.cardperf
 
 import android.content.Intent
-import android.net.Uri
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
@@ -13,6 +13,9 @@ import androidx.activity.ComponentActivity
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
 
+    // Updated on the UI thread; read from the JS bridge's background thread.
+    @Volatile private var currentUrl: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         webView = WebView(this)
@@ -21,16 +24,29 @@ class MainActivity : ComponentActivity() {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         CookieManager.getInstance().setAcceptCookie(true)
-        webView.addJavascriptInterface(Bridge(this), "CardApp")
+        webView.addJavascriptInterface(Bridge(this) { currentUrl }, "CardApp")
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
-                if (uri.scheme == "https" && uri.host == HOST) return false
+                if (isAppUrl(uri.toString())) return false
+                if (!isLaunchableScheme(uri.scheme)) return true
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, uri))
                 } catch (_: Exception) {
                 }
                 return true
+            }
+
+            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                currentUrl = url
+            }
+
+            override fun onPageFinished(view: WebView, url: String?) {
+                currentUrl = url
+            }
+
+            override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
+                currentUrl = url
             }
         }
 
@@ -62,7 +78,6 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val HOST = "card-performance.vercel.app"
-        const val URL = "https://$HOST"
+        const val URL = "https://$APP_HOST"
     }
 }
