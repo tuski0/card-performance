@@ -15,7 +15,7 @@ export default function WeekView({ selected, today, stats, onSelect }: {
         const isToday = key === today;
         const outside = key.slice(0, 7) !== selMonth;
         const day = Number(key.slice(8));
-        const color = isSel ? 'text-white' : isToday ? 'text-brand' : i === 0 ? 'text-[#f04452]' : i === 6 ? 'text-[#3182f6]/80' : 'text-ink';
+        const color = isSel ? 'text-white' : isToday ? 'text-brand' : i === 0 ? 'text-bad' : i === 6 ? 'text-brand/80' : 'text-ink';
         return (
           <button
             key={key}

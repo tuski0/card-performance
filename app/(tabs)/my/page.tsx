@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AppLink from '@/components/AppLink';
 import BudgetEditor from '@/components/BudgetEditor';
+import ThemePicker from '@/components/ThemePicker';
 import { CardChip, Panel, Screen, TopBar, primaryBtn } from '@/components/ui';
 import { searchCards } from '@/lib/cards/owned';
 import { clearLast4, getMyCards, requestCard, setOwned, type MyCardRow } from '@/lib/data/myCards';
@@ -114,6 +115,8 @@ export default function MyPage() {
       </Panel>
 
       <AppLink />
+
+      <ThemePicker />
 
       <BudgetEditor db={db} />
 

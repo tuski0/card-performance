@@ -8,11 +8,24 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: '카드 실적', statusBarStyle: 'default' },
 };
 
-export const viewport: Viewport = { themeColor: '#f2f4f6', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f2f4f6' },
+    { media: '(prefers-color-scheme: dark)', color: '#17171c' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+};
+
+/** Runs before first paint so a saved light/dark choice never flashes the other theme. */
+const THEME_SCRIPT = `try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="antialiased">
         {children}
         <RegisterSW />

@@ -11,7 +11,7 @@ export default function MonthView({ month, selected, today, stats, onSelect }: {
     <>
       <div className="mt-5 grid grid-cols-7 text-center text-[12px] font-medium text-ink-3">
         {WEEK_LABELS.map((w, i) => (
-          <span key={w} className={i === 0 ? 'text-[#f9787f]' : i === 6 ? 'text-[#76abf8]' : ''}>{w}</span>
+          <span key={w} className={i === 0 ? 'text-bad/70' : i === 6 ? 'text-brand/70' : ''}>{w}</span>
         ))}
       </div>
       <div className="mt-1 grid grid-cols-7">
@@ -22,7 +22,7 @@ export default function MonthView({ month, selected, today, stats, onSelect }: {
           const isSel = key === selected;
           const isToday = key === today;
           const wd = (firstWeekday + i) % 7;
-          const numColor = isSel ? 'text-white' : isToday ? 'text-brand' : wd === 0 ? 'text-[#f04452]' : wd === 6 ? 'text-[#3182f6]/80' : 'text-ink';
+          const numColor = isSel ? 'text-white' : isToday ? 'text-brand' : wd === 0 ? 'text-bad' : wd === 6 ? 'text-brand/80' : 'text-ink';
           return (
             <button
               key={key}

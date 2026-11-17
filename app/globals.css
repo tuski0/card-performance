@@ -22,6 +22,49 @@
 
 html { color-scheme: light; }
 
+/* Dark palette. `data-theme` is set before paint by the script in app/layout.tsx:
+   "dark" forces it, "light" forces light, no attribute follows the system. */
+@layer base {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-page: #17171c;
+    --color-surface: #212128;
+    --color-ink: #ececef;
+    --color-ink-2: #b3b8c1;
+    --color-ink-3: #80868f;
+    --color-line: #2f3038;
+    --color-fill: #2a2b33;
+    --color-brand: #4c97fd;
+    --color-brand-soft: #1b2a42;
+    --color-good: #2ec781;
+    --color-good-soft: #15302a;
+    --color-warn: #f2a43a;
+    --color-warn-soft: #3a2b15;
+    --color-bad: #f8656f;
+    --color-bad-soft: #3a1d23;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      color-scheme: dark;
+      --color-page: #17171c;
+      --color-surface: #212128;
+      --color-ink: #ececef;
+      --color-ink-2: #b3b8c1;
+      --color-ink-3: #80868f;
+      --color-line: #2f3038;
+      --color-fill: #2a2b33;
+      --color-brand: #4c97fd;
+      --color-brand-soft: #1b2a42;
+      --color-good: #2ec781;
+      --color-good-soft: #15302a;
+      --color-warn: #f2a43a;
+      --color-warn-soft: #3a2b15;
+      --color-bad: #f8656f;
+      --color-bad-soft: #3a1d23;
+    }
+  }
+}
+
 body {
   background: var(--color-page);
   color: var(--color-ink);
@@ -39,4 +82,4 @@ body {
   outline: none;
   border: 2px solid transparent;
 }
-.input:focus { border-color: var(--color-brand); background: #fff; }
+.input:focus { border-color: var(--color-brand); background: var(--color-surface); }
