@@ -5,12 +5,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 type PaymentRow = {
   id: string; card_id: string; amount: number; merchant: string; category: string; brand: string | null;
-  paid_at: string; canceled: boolean; answers: Record<string, boolean>;
+  paid_at: string; canceled: boolean; answers: Record<string, boolean>; source?: string;
 };
 
 const toPayment = (r: PaymentRow): Payment => ({
   id: r.id, cardId: r.card_id as CardId, amount: r.amount, merchant: r.merchant,
   category: normalizeCategory(r.category), brand: r.brand ?? null, paidAt: r.paid_at, canceled: r.canceled, answers: r.answers ?? {},
+  source: r.source === 'notification' ? 'notification' : 'manual',
 });
 
 /**
