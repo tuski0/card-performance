@@ -124,6 +124,25 @@
 
 ---
 
+### Task 2b: 중복·취소 안전장치 (Codex 검토 반영, 0006)
+
+**Files:**
+- Create: `supabase/migrations/0006_ingest_events.sql`
+- Modify: `lib/ingest.ts` + `lib/ingest.test.ts`, `lib/parse.ts` (+ test) , `app/api/ingest/route.ts` only if the result mapping changes
+
+**Interfaces:**
+- Produces:
+  - 테이블 `ingest_events(user_id uuid not null, source_key text not null, result text not null, created_at timestamptz default now(), primary key (user_id, source_key))`, RLS on, 정책 없음(함수만 접근).
+  - `ingest_save`를 `create or replace`로 교체: 같은 함수 시그니처. 먼저 `ingest_events`에 `(user, p_source_key)` insert, 이미 있으면 `'duplicate'` (10분 창 폐지: 같은 키는 영구 중복). 이후 record/cancel/inbox 처리 후 `result`를 갱신. 처리 중 예외가 나면 트랜잭션 전체가 롤백되어 키도 남지 않는다(재시도 가능).
+  - `lib/parse.ts`: `findCancelCandidates(payments, notice): Payment[]` (기존 `findCancelTarget`과 같은 조건, 전부 반환). `findCancelTarget`은 그 첫 값을 돌려주도록 유지.
+  - `decideIngest`: 취소 알림에서 후보가 **정확히 1건**일 때만 `cancel`, 0건 또는 2건 이상이면 `inbox no-cancel-target`.
+- 앱이 보내는 `key`는 알림 이벤트마다 고정 (Task 5): 서버는 그 값을 그대로 신뢰한다.
+
+- [ ] **Step 1:** 테스트 추가 — `ingest.test.ts`: `does not cancel when two payments match` (같은 카드·금액·가맹점 결제 2건 → `{kind:'inbox', reason:'no-cancel-target'}`), `cancels when exactly one matches`(기존 테스트 유지). `parse` 쪽: `findCancelCandidates returns every match`.
+- [ ] **Step 2:** 실패 확인 → 구현 → `npm test` + `npx tsc --noEmit` PASS
+- [ ] **Step 3:** `0006` SQL 작성 (실행은 사용자). 컨트롤러가 실행 후 curl로 확인: 같은 key 두 번 → 두 번째 `duplicate`; **11분 뒤 가정**은 시간 창이 없으므로 같은 key 재전송도 `duplicate`; 취소 알림을 같은 key로 두 번 → 두 번째 `duplicate`.
+- [ ] **Step 4:** Commit `fix: permanent idempotency keys and ambiguity-safe auto cancel`
+
 ### Task 3: 웹앱 쪽 — 확인 필요 화면, 배너, 마이페이지 연결
 
 **Files:**
@@ -192,14 +211,18 @@
   ```kotlin
   object NoticeFilter {
       fun looksLikePayment(text: String): Boolean          // Global Constraints의 정규식
+      fun isAllowedSource(pkg: String, allowed: Set<String>): Boolean  // 허용 앱 목록에 있는 패키지만
       fun keyOf(pkg: String, text: String): String          // sha256 hex of "$pkg|$text"
   }
   class IngestWorker : CoroutineWorker  // inputData: text, package, postedAt(Long), key
   ```
 
-흐름: `onNotificationPosted(sbn)` → 자기 앱 알림 무시 → `text = title + "\n" + (EXTRA_BIG_TEXT ?: EXTRA_TEXT)` → `looksLikePayment` 아니면 끝 → `keyOf`가 `recentKeys`에 있으면 끝, 아니면 추가 → 토큰 없으면 끝 → `IngestWorker`를 네트워크 연결 조건 + 지수 백오프로 enqueue. Worker: 2xx → success, 400/401 → failure(재시도 안 함), 그 외·네트워크 오류 → retry.
+허용 앱 목록은 `Prefs.allowedPackages: Set<String>` (기본값: 카드 앱 후보 상수 `DEFAULT_ALLOWED`. 정확한 패키지명은 Task 6에서 폰의 `adb logcat` 으로 확인해 채운다. 목록에 없는 앱의 알림은 내용을 읽지도 않고 버린다 — 카톡에 "5,000원 결제했어"가 와도 전송되지 않는다).
+키는 알림 이벤트마다 한 번 만들고 Worker 재시도에도 같은 값을 그대로 보낸다 (서버는 0006의 `ingest_events`로 영구 중복 처리).
 
-- [ ] **Step 1:** `NoticeFilterTest`: `"KB국민카드 5351 승인\n5,000원 일시불"` → true, `"토스뱅크 체크카드 12,000원 결제"` → true, `"승인취소 5,000원 CU"` → true, `"이번 주 혜택을 확인하세요"` → false, `"카톡: 내일 3시에 봐"` → false, `"택배가 도착했어요 (1,000원 착불)"` → false; `keyOf("a","x") == keyOf("a","x")`, `keyOf("a","x") != keyOf("b","x")`
+흐름: `onNotificationPosted(sbn)` → 자기 앱 알림 무시 → `isAllowedSource` 아니면 끝 → `text = title + "\n" + (EXTRA_BIG_TEXT ?: EXTRA_TEXT)` → `looksLikePayment` 아니면 끝 → `keyOf(pkg, sbn.key, sbn.postTime, text)`가 `recentKeys`에 있으면 끝, 아니면 추가 → 토큰 없으면 끝 → `IngestWorker`를 네트워크 연결 조건 + 지수 백오프로 enqueue. Worker: 2xx → success, 400/401 → failure(재시도 안 함), 그 외·네트워크 오류 → retry.
+
+- [ ] **Step 1:** `NoticeFilterTest`: `"KB국민카드 5351 승인\n5,000원 일시불"` → true, `"토스뱅크 체크카드 12,000원 결제"` → true, `"승인취소 5,000원 CU"` → true, `"이번 주 혜택을 확인하세요"` → false, `"카톡: 내일 3시에 봐"` → false, `"택배가 도착했어요 (1,000원 착불)"` → false; `keyOf("a","k",1L,"x")`는 같은 인자면 같고, pkg/sbnKey/postTime/text 중 하나만 달라도 다르다; `isAllowedSource("com.kakao.talk", DEFAULT_ALLOWED) == false`, 후보 패키지는 true; 카톡 패키지 + `"5,000원 결제했어"`는 허용 앱이 아니므로 전송 안 됨(`shouldForward(pkg, text, allowed)` 순수 함수로 테스트)
 - [ ] **Step 2:** `./gradlew testDebugUnitTest` → FAIL
 - [ ] **Step 3:** 구현
 - [ ] **Step 4:** `./gradlew testDebugUnitTest assembleDebug` → PASS, APK 생성
