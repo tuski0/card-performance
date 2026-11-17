@@ -1,7 +1,7 @@
 import type { CardId, Category, Payment } from '@/lib/cards';
 import { findBrand } from '@/lib/brands';
 import { guessCategory, merchantKey } from '@/lib/merchants';
-import { findCancelTarget, parsePaymentText } from '@/lib/parse';
+import { findCancelCandidates, parsePaymentText } from '@/lib/parse';
 
 export type IngestContext = {
   /** last4 → card */
@@ -29,8 +29,9 @@ export function decideIngest(text: string, ctx: IngestContext, postedAt: Date): 
 
   const paidAt = p.paidAt ?? postedAt.toISOString();
   if (p.canceled) {
-    const target = findCancelTarget(ctx.recent, { amount: p.amount, merchant: p.merchant, paidAt, cardId });
-    return target ? { kind: 'cancel', paymentId: target.id } : { kind: 'inbox', reason: 'no-cancel-target' };
+    // Only an unambiguous match may cancel; zero or several candidates go to the inbox for a human.
+    const hits = findCancelCandidates(ctx.recent, { amount: p.amount, merchant: p.merchant, paidAt, cardId });
+    return hits.length === 1 ? { kind: 'cancel', paymentId: hits[0].id } : { kind: 'inbox', reason: 'no-cancel-target' };
   }
 
   const brand = findBrand(p.merchant);

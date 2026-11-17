@@ -63,7 +63,7 @@ describe('real KB notifications', () => {
   });
 });
 
-import { findCancelTarget } from './parse';
+import { findCancelCandidates, findCancelTarget } from './parse';
 
 describe('cancel notifications', () => {
   it('flags 승인취소 / 취소 texts', () => {
@@ -91,6 +91,12 @@ describe('cancel notifications', () => {
     ];
     const t = findCancelTarget(list, { amount: 5980, merchant: '씨유(CU) 구로예성점', paidAt: '2026-11-16T00:40:00Z' });
     expect(t?.id).toBe('b');
+  });
+
+  it('findCancelCandidates returns every match', () => {
+    const list = [pay('a', {}), pay('b', { paidAt: '2026-11-16T00:10:00Z' }), pay('x', { amount: 1 })];
+    const c = findCancelCandidates(list, { amount: 5980, merchant: '씨유(CU) 구로예성점', paidAt: '2026-11-16T00:40:00Z' });
+    expect(c.map((p) => p.id)).toEqual(['b', 'a']);
   });
 
   it('findCancelTarget returns null when nothing matches', () => {

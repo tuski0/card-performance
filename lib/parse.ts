@@ -71,11 +71,11 @@ export function toFormQuery(text: string, now = new Date()): string {
   return q.toString();
 }
 
-/** The payment a cancel notice refers to: same amount and merchant, not yet canceled, within 30 days before it. Latest wins. */
-export function findCancelTarget(
+/** Every payment a cancel notice could refer to: same amount and merchant, not yet canceled, within 30 days before it. Latest first. */
+export function findCancelCandidates(
   payments: Payment[],
   notice: { amount: number; merchant: string; paidAt: string; cardId?: CardId | null },
-): Payment | null {
+): Payment[] {
   const key = merchantKey(notice.merchant);
   const end = Date.parse(notice.paidAt) + 60_000;
   const start = end - 30 * 86_400_000;
@@ -84,5 +84,13 @@ export function findCancelTarget(
     if (notice.cardId && p.cardId !== notice.cardId) return false;
     return !p.canceled && p.amount === notice.amount && merchantKey(p.merchant) === key && t >= start && t <= end;
   });
-  return hits.sort((a, b) => b.paidAt.localeCompare(a.paidAt))[0] ?? null;
+  return hits.sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+}
+
+/** The latest candidate, or null. */
+export function findCancelTarget(
+  payments: Payment[],
+  notice: { amount: number; merchant: string; paidAt: string; cardId?: CardId | null },
+): Payment | null {
+  return findCancelCandidates(payments, notice)[0] ?? null;
 }

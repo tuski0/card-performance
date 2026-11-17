@@ -43,6 +43,12 @@ describe('decideIngest', () => {
     expect(a).toEqual({ kind: 'cancel', paymentId: 'p1' });
   });
 
+  it('does not cancel when two payments match', () => {
+    const mk = (id: string): Payment => ({ id, cardId: 'toss', amount: 12000, merchant: '스타벅스', category: 'cafe', brand: 'starbucks', paidAt: '2026-11-10T03:00:00.000Z', canceled: false, answers: {} });
+    const a = decideIngest('토스뱅크 체크 12,000원 승인취소 스타벅스', ctx({ recent: [mk('p1'), mk('p2')] }), now);
+    expect(a).toEqual({ kind: 'inbox', reason: 'no-cancel-target' });
+  });
+
   it('no-cancel-target', () => {
     const a = decideIngest('토스뱅크 체크 12,000원 승인취소 스타벅스', ctx(), now);
     expect(a).toEqual({ kind: 'inbox', reason: 'no-cancel-target' });
