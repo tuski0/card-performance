@@ -116,7 +116,7 @@ export default function CalendarPage() {
             <div className="mt-3 flex items-end gap-5 px-1">
               <div>
                 <p className="text-[13px] text-ink-3">지출</p>
-                <p className="text-[20px] font-bold tracking-tight">{payments ? won(total.spent) : '—'}</p>
+                <p className="text-[20px] font-bold tracking-tight text-bad">{payments ? won(total.spent) : '—'}</p>
               </div>
               <div>
                 <p className="text-[13px] text-ink-3">받은 혜택</p>
