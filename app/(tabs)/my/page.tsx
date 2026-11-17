@@ -74,11 +74,13 @@ export default function MyPage() {
   }
 
   return (
-    <Screen className="max-w-xl">
-      <TopBar title="마이" />
+    <Screen>
+      <TopBar title="마이" right={<button onClick={logout} className="hidden h-9 rounded-full bg-fill px-4 text-[13px] font-semibold text-ink-2 md:block">로그아웃</button>} />
       {email && <p className="px-1 text-sm text-ink-3">{email}</p>}
       {error && <Panel><p className="text-sm text-bad">{error.includes('owned') ? '내 카드 칸이 아직 없어요. Supabase에서 0003_phase2.sql을 실행해 주세요.' : error}</p></Panel>}
 
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-start [&>*]:min-w-0">
+      <div className="flex flex-col gap-3">
       <Panel className="!px-2 !py-3">
         <div className="px-3 pb-2 pt-1">
           <h2 className="text-[15px] font-semibold">내 카드</h2>
@@ -114,12 +116,6 @@ export default function MyPage() {
         {results.length === 0 && <p className="px-3 py-4 text-center text-sm text-ink-3">“{query}” 카드는 아직 없어요. 아래에서 추가를 요청해 주세요.</p>}
       </Panel>
 
-      <AppLink />
-
-      <ThemePicker />
-
-      <BudgetEditor db={db} />
-
       <Panel>
         <h2 className="text-[15px] font-semibold">카드 추가 요청</h2>
         <p className="mt-1 text-xs text-ink-3">찾는 카드가 없으면 알려 주세요. 혜택 규칙을 확인해서 추가하면 목록에 나와요.</p>
@@ -133,6 +129,14 @@ export default function MyPage() {
           </form>
         )}
       </Panel>
+      </div>
+
+      <div className="flex flex-col gap-3">
+      <AppLink />
+
+      <ThemePicker />
+
+      <BudgetEditor db={db} />
 
       <Panel className="!p-2">
         <Link href="/cards/recurring" className="flex items-center justify-between rounded-2xl px-3 py-3.5 active:bg-fill">
@@ -140,7 +144,9 @@ export default function MyPage() {
         </Link>
       </Panel>
 
-      <button onClick={logout} className={`${primaryBtn} !bg-fill !text-ink-2`}>로그아웃</button>
+      <button onClick={logout} className={`${primaryBtn} !bg-fill !text-ink-2 md:hidden`}>로그아웃</button>
+      </div>
+      </div>
     </Screen>
   );
 }
